@@ -1,0 +1,7 @@
+models/
+models_facing/
+resimg/
+resimg_facing
+data/
+*.pyc
+.ipynb_checkpoints/

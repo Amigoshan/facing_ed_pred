@@ -5,13 +5,14 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
+from utils import img_normalize, img_denormalize, seq_show
 
 import matplotlib.pyplot as plt
 
 
 class FacingDroneUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/home/wenshan/datasets/droneData/',imgsize = 192, batch = 32):
+    def __init__(self, imgdir='/datasets/droneData/',imgsize = 192, batch = 32):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -63,34 +64,6 @@ class FacingDroneUnlabelDataset(Dataset):
         print total_seq_num
         print self.episodeNum
 
-    def img_normalize(self, img):
-        img = img[:,:,[2,1,0]] # bgr to rgb
-        img = img.astype(np.float32)/255.0
-        img = img.transpose(2,0,1)
-        return img
-
-    def img_denormalize(self, img):
-        # print img.shape
-        img = img.transpose(1,2,0)
-        img = img.clip(0,1) # network can output values out of range
-        img = (img*255).astype(np.uint8)
-        img = img[:,:,[2,1,0]]
-        return img
-
-    def seq_show(self, imgseq):
-        # input a numpy array: n x 3 x h x w
-        imgnum = imgseq.shape[0]
-        imgshow = []
-        for k in range(imgnum):
-            imgshow.append(self.img_denormalize(imgseq[k,:,:,:])) # n x h x w x 3
-        imgshow = np.array(imgshow)
-        imgshow = imgshow.transpose(1,0,2,3).reshape(imgseq.shape[2],-1,3) # h x (n x w) x 3
-        imgshow = cv2.resize(imgshow,(0,0),fx=0.3,fy=0.3)
-        cv2.imshow('img',imgshow)
-        cv2.waitKey(0)
-
-
-
     def __len__(self):
         return self.N
 
@@ -110,7 +83,7 @@ class FacingDroneUnlabelDataset(Dataset):
 
             resize_scale = float(self.imgsize)/np.max(img.shape)
             img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-            img = self.img_normalize(img)
+            img = img_normalize(img)
             # print img.shape
             imgw = img.shape[2]
             imgh = img.shape[1]
@@ -130,7 +103,7 @@ if __name__=='__main__':
     for k in range(100):
         imgseq = facingDroneUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape
-        facingDroneUnlabelDataset.seq_show(imgseq)
+        seq_show(imgseq)
         # cv2.imshow('img',facingDroneUnlabelDataset.img_denormalize(imgseq[5,:,:,:]))
         # cv2.waitKey(0)
 

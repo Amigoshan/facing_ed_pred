@@ -1,3 +1,5 @@
+# this is deprecated since we have everything in train_ed_semi_cls.py
+
 import cv2
 import torch
 from torch.autograd import Variable

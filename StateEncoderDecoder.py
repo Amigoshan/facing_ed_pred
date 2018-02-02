@@ -152,6 +152,19 @@ class EncoderCls(nn.Module):
 		x = self.cls(x_encode.view(x_encode.size()[0], -1))
 		return x, x_encode
 
+
+class EncoderReg(nn.Module):
+
+	def __init__(self, hiddens=None, kernels=None, strides=None, paddings=None, actfunc='relu', regnum=2):
+		super(EncoderReg,self).__init__()
+		self.encoder = StateEncoder(hiddens, kernels, strides, paddings, actfunc)
+		self.reg = nn.Linear(hiddens[-1], regnum)
+
+	def forward(self,x):
+		x_encode = self.encoder(x)
+		x = self.reg(x_encode.view(x_encode.size()[0], -1))
+		return x, x_encode
+
 # hiddens = [3,16,32,64,128,256]
 # kernels = [5,5,5,5,5]
 # paddings = [2,2,2,2,0]

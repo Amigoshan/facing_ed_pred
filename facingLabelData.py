@@ -5,6 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
+from utils import img_normalize, img_denormalize
 
 import matplotlib.pyplot as plt
 
@@ -85,20 +86,6 @@ class FacingLabelDataset(Dataset):
         self.N = len(self.imgnamelist)
         print 'Read', self.N, 'valid bboxes...'
 
-    def img_normalize(self, img):
-        img = img[:,:,[2,1,0]] # bgr to rgb
-        img = img.astype(np.float32)/255.0
-        img = img.transpose(2,0,1)
-        return img
-
-    def img_denormalize(self, img):
-        print img.shape
-        img = img.transpose(1,2,0)
-        img = img.clip(0,255) # network can output values out of range
-        img = (img*256).astype(np.uint8)
-        img = img[:,:,[2,1,0]]
-        return img
-
     def __len__(self):
         return self.N
 
@@ -110,7 +97,7 @@ class FacingLabelDataset(Dataset):
         img = img[bbox[1]:bbox[3],bbox[0]:bbox[2],:] # crop the bbox
         resize_scale = float(self.imgsize)/np.max(img.shape)
         img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-        img = self.img_normalize(img)
+        img = img_normalize(img)
         # print img.shape
         imgw = img.shape[2]
         imgh = img.shape[1]

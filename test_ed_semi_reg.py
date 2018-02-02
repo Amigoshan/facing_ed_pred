@@ -2,38 +2,36 @@ import cv2
 import torch
 from torch.autograd import Variable
 import torch.nn as nn
-import torch.optim as optim
 from torch.utils.data import DataLoader
 import numpy as np
 from os.path import join
 from math import exp
 
 
-from utils import loadPretrain2, loadPretrain, seq_show
+from utils import loadPretrain2, loadPretrain, seq_show_with_arrow
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
-from StateEncoderDecoder import EncoderCls
-from Predictor import PredictNet
+from StateEncoderDecoder import EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/4_2_ed_cls_2000.pkl'
-batch = 32
-unlabel_batch = 32
+preTrainModel = 'models_facing/5_5_ed_reg_10000.pkl'
+batch = 8
+unlabel_batch = 8
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
 paddings = [1,1,1,1,1,1,0]
 strides = [2,2,2,2,2,2,1]
 
-encoderCls = EncoderCls(hiddens, kernels, strides, paddings, actfunc='leaky')
+encoderReg = EncoderReg(hiddens, kernels, strides, paddings, actfunc='leaky')
 # encode the input using pretrained model
 print 'load pretrained...'
-encoderCls=loadPretrain(encoderCls,preTrainModel)
-encoderCls.cuda()
+encoderReg=loadPretrain(encoderReg,preTrainModel)
+encoderReg.cuda()
 
-criterion = nn.CrossEntropyLoss()
+criterion = nn.MSELoss()
 
 imgdataset = FacingDroneLabelDataset()
 valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
@@ -47,13 +45,11 @@ valloader = DataLoader(valset, batch_size=valnum, shuffle=True, num_workers=8)
 unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
 
-def test_label(dataloader, encoderCls, criterion, display=True):
+def test_label(dataloader, encoderReg, criterion, display=True):
     # test on valset/trainset
     # return loss and accuracy
     ind = 0
     mean_loss = 0.0
-    mean_acc = 0.0
-    # lossplot = []
     for val_sample in dataloader:
         ind += 1
         inputImgs = val_sample['img']
@@ -62,29 +58,21 @@ def test_label(dataloader, encoderCls, criterion, display=True):
 
         inputState = Variable(inputImgs,requires_grad=False).cuda()
 
-        output, _ = encoderCls(inputState)
+        output, _ = encoderReg(inputState)
         loss = criterion(output, targetCls)
         val_loss = loss.data[0]
         mean_loss += val_loss
 
-        _, pred = output.topk(1, 1, True, True)
-
-        correct = pred.squeeze().eq(targetCls)
-        val_acc = correct.view(-1).float().sum(0)
-        val_acc = val_acc/valnum
-        mean_acc += val_acc
-
-        print pred.data.cpu().squeeze().numpy()
-        print val_sample['label'].numpy()
+        print labels.numpy()
         if display:
-            seq_show(val_sample['img'].numpy())
+            seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy())
 
         break
 
-    return mean_loss, mean_acc
+    return output, mean_loss
 
 
-def test_unlabel(dataloader, encoderCls, display=True):
+def test_unlabel(dataloader, encoderReg, display=True):
     # test on valset/trainset
     # return the output on one batch
     ind = 0
@@ -97,20 +85,18 @@ def test_unlabel(dataloader, encoderCls, display=True):
 
         inputState = Variable(inputImgs,requires_grad=False).cuda()
 
-        output, _ = encoderCls(inputState)
+        output, _ = encoderReg(inputState)
 
         break
 
-    _, pred = output.topk(1, 1, True, True)
-    print pred.data.cpu().squeeze().numpy()
     if display:
-        seq_show(val_sample.squeeze().numpy())
-    return pred.squeeze()
+        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy())
+    return output
 
 
 
 for k in range(100):  # loop over the dataset multiple times
 
-    test_label(dataloader, encoderCls, criterion, display = True)
-    test_label(valloader, encoderCls, criterion, display = True)
-    pred = test_unlabel(unlabelloder, encoderCls, display=True)
+    test_label(dataloader, encoderReg, criterion, display = True)
+    test_label(valloader, encoderReg, criterion, display = True)
+    pred = test_unlabel(unlabelloder, encoderReg, display=True)

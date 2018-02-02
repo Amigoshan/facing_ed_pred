@@ -8,7 +8,7 @@ import numpy as np
 from os.path import join
 from math import exp
 
-from utils import loadPretrain2
+from utils import loadPretrain2, loadPretrain
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
@@ -16,8 +16,9 @@ from StateEncoderDecoder import EncoderCls
 from Predictor import PredictNet
 
 
-exp_prefix = '3_5_'
-preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+exp_prefix = '4_1_'
+# preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_cls'
 imgoutdir = 'resimg_facing'
 Lr = 0.001 
@@ -38,14 +39,14 @@ strides = [2,2,2,2,2,2,1]
 encoderCls = EncoderCls(hiddens, kernels, strides, paddings, actfunc='leaky')
 # encode the input using pretrained model
 print 'load pretrained...'
-encoderCls=loadPretrain2(encoderCls,preTrainModel)
+encoderCls=loadPretrain(encoderCls,preTrainModel)
 encoderCls.cuda()
 
 
 paramlist = list(encoderCls.parameters())
 criterion = nn.CrossEntropyLoss()
 # clsOptimizer = optim.SGD(predictNet.parameters(), lr = Lr, momentum=0.9)
-clsOptimizer = optim.Adam(paramlist[-4:], lr = Lr)
+clsOptimizer = optim.Adam(paramlist[-8:], lr = Lr)
 
 imgdataset = FacingDroneLabelDataset()
 valset = FacingDroneLabelDataset(imgdir='/home/wenshan/datasets/droneData/val')
@@ -136,6 +137,41 @@ def train_label(encoderCls, dataloader, clsOptimizer, criterion, step, losslist)
     return running_loss/step
 
 
+def test_label(dataloader, encoderCls, criterion, batchnum = 1):
+    # test on valset/trainset
+    # return loss and accuracy
+    ind = 0
+    mean_loss = 0.0
+    mean_acc = 0.0
+    # lossplot = []
+    for val_sample in dataloader:
+        ind += 1
+        inputImgs = val_sample['img']
+        labels = val_sample['label']
+        inputState = Variable(inputImgs,requires_grad=False)
+        targetCls = Variable(labels,requires_grad=False)
+        inputState = inputState.cuda()
+        targetCls = targetCls.cuda()
+
+        output, _ = encoderCls(inputState)
+        loss = criterion(output, targetCls)
+        val_loss = loss.data[0]
+        mean_loss += val_loss
+        # lossplot.append(val_loss)
+
+        _, pred = output.topk(1, 1, True, True)
+
+        correct = pred.squeeze().eq(targetCls)
+        val_acc = correct.view(-1).float().sum(0)
+        val_acc = val_acc/valnum
+        mean_acc += val_acc
+
+        if ind == batchnum:
+            break
+
+    return mean_loss/batchnum, mean_acc/batchnum
+
+
 lossplot = []
 unlabellossplot = []
 vallossplot = []
@@ -155,31 +191,13 @@ while True:
     unlabel_loss = train_unlabel(encoderCls, unlabelloder, clsOptimizer, 5, unlabellossplot)
 
     # if ind % showiter == 0:    # print every 20 mini-batches
+    val_loss, val_acc = test_label(valloader, encoderCls, criterion, batchnum = 1)
+    train_loss, train_acc = test_label(dataloader, encoderCls, criterion, batchnum = 3)
 
-    # test on valset
-    for val_sample in valloader:
-        inputImgs = val_sample['img']
-        labels = val_sample['label']
-        inputState = Variable(inputImgs,requires_grad=False)
-        targetCls = Variable(labels,requires_grad=False)
-        inputState = inputState.cuda()
-        targetCls = targetCls.cuda()
+    vallossplot.append([ind, val_loss])
 
-        output, _ = encoderCls(inputState)
-        loss = criterion(output, targetCls)
-        val_loss = loss.data[0]
-
-        _, pred = output.topk(1, 1, True, True)
-
-        correct = pred.squeeze().eq(targetCls)
-        val_acc = correct.view(-1).float().sum(0)
-        val_acc = val_acc/valnum
-        vallossplot.append([ind,val_loss])
-
-        break
-
-    print('[%d] loss: %.5f lr: %f, val-loss: %.5f, val-acc: %.5f, unlabel-loss: %.5f' %
-    (ind , running_loss , clsOptimizer.param_groups[0]['lr'], val_loss, val_acc, unlabel_loss))
+    print('[%d] loss: %.5f, accuracy: %.5f , val-loss: %.5f, val-acc: %.5f, unlabel-loss: %.5f' %
+    (ind , train_loss , train_acc, val_loss, val_acc, unlabel_loss))
 
     if (ind)%snapshot==0:
         torch.save(encoderCls.state_dict(), predictModel+'_'+str(ind)+'.pkl')
@@ -194,8 +212,13 @@ lossplot = np.array(lossplot)
 lossplot = lossplot.reshape((-1,1))
 lossplot = lossplot.mean(axis=1)
 plt.plot(lossplot)
+
 vallossplot = np.array(vallossplot)
 plt.plot(vallossplot[:,0],vallossplot[:,1])
+
+unlabellossplot = np.array(unlabellossplot)
+plt.plot(unlabellossplot)
+
 plt.grid()
 plt.savefig(join(imgoutdir, predictModel.split('/')[-1]+'.png'))
 # plt.ylim([0,1])

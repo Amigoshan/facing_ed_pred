@@ -16,8 +16,8 @@ class FacingDroneUnlabelDataset(Dataset):
         self.imgsize = imgsize
         self.imgnamelist = []
         self.fileprefix = 'drone_'
-        self.folderlist = ['4','7','11','17','23','30','32','33','37','38','49','50']
-        self.maxind = [4918,4100, 5265, 7550, 4157, 6350, 6492, 8402, 5131, 4907,2574, 3140]
+        self.folderlist = ['4','7','11','17','23','30','32','33','37','38','49','50','52']
+        self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
         self.batch = batch
         self.episodeNum = []
 
@@ -70,12 +70,26 @@ class FacingDroneUnlabelDataset(Dataset):
         return img
 
     def img_denormalize(self, img):
-        print img.shape
+        # print img.shape
         img = img.transpose(1,2,0)
         img = img.clip(0,1) # network can output values out of range
         img = (img*255).astype(np.uint8)
         img = img[:,:,[2,1,0]]
         return img
+
+    def seq_show(self, imgseq):
+        # input a numpy array: n x 3 x h x w
+        imgnum = imgseq.shape[0]
+        imgshow = []
+        for k in range(imgnum):
+            imgshow.append(self.img_denormalize(imgseq[k,:,:,:])) # n x h x w x 3
+        imgshow = np.array(imgshow)
+        imgshow = imgshow.transpose(1,0,2,3).reshape(imgseq.shape[2],-1,3) # h x (n x w) x 3
+        imgshow = cv2.resize(imgshow,(0,0),fx=0.3,fy=0.3)
+        cv2.imshow('img',imgshow)
+        cv2.waitKey(0)
+
+
 
     def __len__(self):
         return self.N
@@ -113,11 +127,12 @@ if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
     facingDroneUnlabelDataset = FacingDroneUnlabelDataset()
-    for k in range(1):
+    for k in range(100):
         imgseq = facingDroneUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape
-        cv2.imshow('img',facingDroneUnlabelDataset.img_denormalize(imgseq[5,:,:,:]))
-        cv2.waitKey(0)
+        facingDroneUnlabelDataset.seq_show(imgseq)
+        # cv2.imshow('img',facingDroneUnlabelDataset.img_denormalize(imgseq[5,:,:,:]))
+        # cv2.waitKey(0)
 
     dataloader = DataLoader(facingDroneUnlabelDataset, batch_size=1, shuffle=True, num_workers=1)
 

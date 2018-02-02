@@ -1,99 +1,114 @@
 import cv2
 import torch
 from torch.autograd import Variable
-import torch.optim as optim
 import torch.nn as nn
+import torch.optim as optim
 from torch.utils.data import DataLoader
-from StateEncoderDecoder import StateEncoderDecoder
-from mnistManipulationData import MnistManiDataset
-from utils import loadPretrain
-
-import matplotlib.pyplot as plt
 import numpy as np
-import math
 from os.path import join
+from math import exp
+
+from utils import loadPretrain2, loadPretrain
+from facingDroneLabelData import FacingDroneLabelDataset
+from facingDroneUnlabelData import FacingDroneUnlabelDataset
+from facingLabelData import FacingLabelDataset
+from StateEncoderDecoder import EncoderCls
+from Predictor import PredictNet
+
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
+preTrainModel = 'models_facing/2_6_ed_cls_1000.pkl'
+batch = 32
+unlabel_batch = 32
 
-testnum = 1000
-encodename = '5_2_encoder_decoder_warp0.1_relu_50000'
-encodedecoderSave = 'models/'+encodename+'.pkl'
+hiddens = [3,16,32,32,64,64,128,256] 
+kernels = [4,4,4,4,4,4,3]
+paddings = [1,1,1,1,1,1,0]
+strides = [2,2,2,2,2,2,1]
 
-imgoutdir = 'resimg'
-
-stateEncoderDecoder = StateEncoderDecoder()
+encoderCls = EncoderCls(hiddens, kernels, strides, paddings, actfunc='leaky')
 # encode the input using pretrained model
 print 'load pretrained...'
-stateEncoderDecoder=loadPretrain(stateEncoderDecoder,encodedecoderSave)
-stateEncoderDecoder.cuda()
+encoderCls=loadPretrain(encoderCls,preTrainModel)
+encoderCls.cuda()
 
-# testing
-mnistManiDataset = MnistManiDataset(cat = 'test') #, fix_warping=True, warp_scale=0.3)
-dataloader = DataLoader(mnistManiDataset, batch_size=1, shuffle=True, num_workers=1)
+criterion = nn.CrossEntropyLoss()
 
-criterion = nn.MSELoss()
+imgdataset = FacingDroneLabelDataset()
+valset = FacingDroneLabelDataset(imgdir='/home/wenshan/datasets/droneData/val')
+# valset = FacingLabelDataset()
+# imgdataset = FacingLabelDataset()
+unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch)
 
-codelist = []
-labellist = []
-codemeanlist, codestdlist, codezerolist = [], [], []
-for ind,sample in enumerate(dataloader):  # loop over the dataset multiple times
+valnum = 100
+dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=4)
+valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=8)
+unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
-    inputState = Variable(sample['wdata'].unsqueeze(1).cuda(),volatile=True)
-    targetState = Variable(sample['wdata'].clone().unsqueeze(1).cuda())
-    # print inputState.size()
 
-    # forward 
-    output, code = stateEncoderDecoder(inputState)
-    loss = criterion(output, targetState)
-    # print output.data.cpu().numpy(),np.max(output.data.cpu().numpy()),np.min(output.data.cpu().numpy())
-    # print output.data.cpu().numpy()
+def test_label(dataloader, encoderCls, criterion, display=True):
+    # test on valset/trainset
+    # return loss and accuracy
+    ind = 0
+    mean_loss = 0.0
+    mean_acc = 0.0
+    # lossplot = []
+    for val_sample in dataloader:
+        ind += 1
+        inputImgs = val_sample['img']
+        labels = val_sample['label']
+        targetCls = Variable(labels,requires_grad=False).cuda()
 
-    # some statistics on the coding
-    eninput = code.data.cpu().numpy().squeeze()
-    print '---'
-    print 'Encode state:', eninput
-    codemean, codestd, codezero = np.mean(eninput), np.std(eninput), np.sum(eninput<1e-5)
-    print 'Mean:', codemean, 'Std:', codestd, '#0:', codezero
-    codemeanlist.append(codemean)
-    codestdlist.append(codestd)
-    codezerolist.append(codezero)
+        inputState = Variable(inputImgs,requires_grad=False).cuda()
 
-    diff = output.data.cpu() - targetState.data.cpu()
-    diffimg = (np.absolute(diff.numpy()[0,0,:,:]))
-    # print np.max(diffimg),np.mean(diffimg)
+        output, _ = encoderCls(inputState)
+        loss = criterion(output, targetCls)
+        val_loss = loss.data[0]
+        mean_loss += val_loss
 
-    print 'loss:',loss.data[0]
-    codelist.append(code.data.cpu().squeeze().numpy())
-    labellist.append(sample['label'][0])
+        _, pred = output.topk(1, 1, True, True)
 
-    inputimg = sample['wdata'].squeeze().numpy()
-    outputimg = output.data.cpu().squeeze().numpy()
-    # mnistManiDataset.showdigit(np.array([inputimg, outputimg, diffimg]), time=0)
+        correct = pred.squeeze().eq(targetCls)
+        val_acc = correct.view(-1).float().sum(0)
+        val_acc = val_acc/valnum
+        mean_acc += val_acc
 
-    if ind==testnum-1:
+        print pred.data.cpu().squeeze().numpy()
+        print val_sample['label'].numpy()
+        if display:
+            unlabelset.seq_show(val_sample['img'].numpy())
+
         break
 
-print '***'
-print 'Mean:', np.mean(np.array(codemeanlist)), \
-        'Std:', np.mean(np.array(codestdlist)), \
-        '#0:', np.mean(np.array(codezerolist))
+    return mean_loss, mean_acc
 
-# import ipdb; ipdb.set_trace()
-# convert the encoding results to 2d space
-from sklearn.manifold import TSNE
-model = TSNE(n_components=2)
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k', (1,0.647,0), (0.5,0.5,0.5), (0.5,0.7,1)]
-# fig = plt.figure()
 
-codes_tsne = model.fit_transform(np.array(codelist))
-labellist = np.array(labellist)
-# fc6_tsne = fig.add_subplot(131)
-ptslist = []
-for ind,color in enumerate(colors):
-    codes_ind = labellist == ind
-    points = plt.scatter(codes_tsne[codes_ind,0],codes_tsne[codes_ind,1],color=color, label=str(ind))
-    ptslist.append(points)
+def test_unlabel(dataloader, encoderCls, display=True):
+    # test on valset/trainset
+    # return the output on one batch
+    ind = 0
+    mean_loss = 0.0
+    mean_acc = 0.0
+    # lossplot = []
+    for val_sample in dataloader:
+        ind += 1
+        inputImgs = val_sample.squeeze()
 
-plt.legend(ptslist, [str(x) for x in range(10)])
-plt.savefig(join(imgoutdir, encodename+'_test.png'))
-plt.show()
+        inputState = Variable(inputImgs,requires_grad=False).cuda()
+
+        output, _ = encoderCls(inputState)
+
+        break
+
+    _, pred = output.topk(1, 1, True, True)
+    print pred.data.cpu().squeeze().numpy()
+    if display:
+        unlabelset.seq_show(val_sample.squeeze().numpy())
+    return pred.squeeze()
+
+
+
+for k in range(100):  # loop over the dataset multiple times
+
+    test_label(dataloader, encoderCls, criterion, display = True)
+    pred = test_unlabel(unlabelloder, encoderCls, display=True)

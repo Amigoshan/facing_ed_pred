@@ -6,13 +6,13 @@ from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
 from utils import img_normalize, img_denormalize, seq_show
-
+import random
 import matplotlib.pyplot as plt
 
 
 class FacingDroneUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/droneData/',imgsize = 192, batch = 32):
+    def __init__(self, imgdir='/datasets/droneData/',imgsize = 192, batch = 32, data_aug=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -20,6 +20,7 @@ class FacingDroneUnlabelDataset(Dataset):
         self.folderlist = ['4','7','11','17','23','30','32','33','37','38','49','50','52']
         self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
         self.batch = batch
+        self.aug = data_aug
         self.episodeNum = []
 
         for f_ind, foldername in enumerate(self.folderlist):
@@ -64,6 +65,28 @@ class FacingDroneUnlabelDataset(Dataset):
         print total_seq_num
         print self.episodeNum
 
+    # amigo add for data augmentation before normalization
+    def _im_hsv_augmentation(self, image, Hscale = 10,Sscale = 50, Vscale = 50):
+        imageHSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        # change HSV
+        h = random.random()*2-1
+        s = random.random()*2-1
+        v = random.random()*2-1
+        imageHSV[:,:,0] = np.clip(imageHSV[:,:,0]+Hscale*h,0,255)
+        imageHSV[:,:,1] = np.clip(imageHSV[:,:,1]+Sscale*s,0,255)
+        imageHSV[:,:,2] = np.clip(imageHSV[:,:,2]+Vscale*v,0,255)
+        image = cv2.cvtColor(imageHSV,cv2.COLOR_HSV2BGR)
+        return image
+
+    def _im_crop(self, image, maxscale=0.1):
+        imgshape = image.shape
+        startx = int(random.random()*maxscale*imgshape[1])
+        starty = int(random.random()*maxscale*imgshape[0])
+        endx = int(imgshape[1]-random.random()*maxscale*imgshape[1])
+        endy = int(imgshape[0]-random.random()*maxscale*imgshape[0])
+        return image[starty:endy,startx:endx,:]
+
+
     def __len__(self):
         return self.N
 
@@ -80,6 +103,9 @@ class FacingDroneUnlabelDataset(Dataset):
         for k in range(self.batch):
             img = cv2.imread(self.imgnamelist[epiInd][idx+k])
 
+            if self.aug:
+                img = self._im_hsv_augmentation(img)
+                img = self._im_crop(img)
 
             resize_scale = float(self.imgsize)/np.max(img.shape)
             img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
@@ -99,11 +125,11 @@ class FacingDroneUnlabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingDroneUnlabelDataset = FacingDroneUnlabelDataset()
+    facingDroneUnlabelDataset = FacingDroneUnlabelDataset(batch=12, data_aug=True)
     for k in range(100):
         imgseq = facingDroneUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape
-        seq_show(imgseq)
+        seq_show(imgseq, scale=0.8)
         # cv2.imshow('img',facingDroneUnlabelDataset.img_denormalize(imgseq[5,:,:,:]))
         # cv2.waitKey(0)
 

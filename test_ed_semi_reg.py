@@ -16,7 +16,7 @@ from StateEncoderDecoder import EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/5_5_ed_reg_10000.pkl'
+preTrainModel = 'models_facing/7_11_ed_reg_5000.pkl'
 batch = 8
 unlabel_batch = 8
 
@@ -37,7 +37,7 @@ imgdataset = FacingDroneLabelDataset()
 valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
 # valset = FacingLabelDataset()
 # imgdataset = FacingLabelDataset()
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch)
+unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True)
 
 valnum = 32
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=4)

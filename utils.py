@@ -107,3 +107,11 @@ def seq_show_with_arrow(imgseq, dirseq, scale = 0.8):
     cv2.imshow('img',imgshow)
     cv2.waitKey(0)
 
+def groupPlot(datax, datay, group=10):
+	datax, datay = np.array(datax), np.array(datay)
+	if len(datax)%group>0:
+		datax = datax[0:len(datax)/group*group]
+		datay = datay[0:len(datay)/group*group]
+	datax, datay = datax.reshape((-1,group)), datay.reshape((-1,group))
+	datax, datay = datax.mean(axis=1), datay.mean(axis=1)
+	return (datax, datay)

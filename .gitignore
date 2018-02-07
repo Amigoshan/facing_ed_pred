@@ -3,5 +3,7 @@ models_facing/
 resimg/
 resimg_facing
 data/
+log/
+testimg/
 *.pyc
 .ipynb_checkpoints/

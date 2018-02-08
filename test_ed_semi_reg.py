@@ -16,7 +16,7 @@ from StateEncoderDecoder import EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/7_11_ed_reg_5000.pkl'
+preTrainModel = 'models_facing/8_1_ed_reg_3000.pkl'
 batch = 8
 unlabel_batch = 8
 

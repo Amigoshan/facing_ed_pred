@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 import numpy as np
 from os.path import join
 from math import exp, sqrt
+import random
 
 from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
@@ -59,8 +60,8 @@ valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
 unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True)
 
 valnum = 100
-dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=4)
-valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=8)
+dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
+valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=2)
 unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
 def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criterion, lamb):
@@ -86,16 +87,26 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     output_unlabel, _ = encoderReg(inputState_unlabel)
 
     loss_unlabel = Variable(torch.Tensor([0])).cuda()
-    for ind1 in range(unlabel_batch-1):
-        for ind2 in range(ind1+1, unlabel_batch):
-            w = abs(ind1 - ind2)
-            wei = exp(-alpha*w)
+    for ind1 in range(unlabel_batch-5): # try to make every sample contribute
+        # randomly pick two other samples
+        ind2 = random.randint(ind1+2, unlabel_batch-1)
+        ind3 = random.randint(ind1+1, ind2-1)
 
-            diff = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
-            diff = diff.sum()/2.0
-            loss_unlabel = loss_unlabel + (diff-thresh).clamp(0) * wei
-            if wei<1e-2: # skip far away pairs
-                break
+        diff_big = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = diff_big.sum()/2.0
+        diff_small = (output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = diff_small.sum()/2.0
+        loss_unlabel = loss_unlabel + (diff_small-diff_big).clamp(0)
+    # for ind1 in range(unlabel_batch-1):
+    #     for ind2 in range(ind1+1, unlabel_batch):
+    #         w = abs(ind1 - ind2)
+    #         wei = exp(-alpha*w)
+
+    #         diff = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+    #         diff = diff.sum()/2.0
+    #         loss_unlabel = loss_unlabel + (diff-thresh).clamp(0) * wei
+    #         if wei<1e-2: # skip far away pairs
+    #             break
 
     loss = loss_label + loss_unlabel * lamb
 

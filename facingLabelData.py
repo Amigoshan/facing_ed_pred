@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import img_normalize, img_denormalize
+from utils import img_normalize, img_denormalize, im_hsv_augmentation, im_crop
 
 import matplotlib.pyplot as plt
 
@@ -49,12 +49,13 @@ def fileInDir(dirname):
 
 class FacingLabelDataset(Dataset):
 
-    def __init__(self, annodir = '/home/wenshan/datasets/facing/facing_anno', imgdir='/home/wenshan/datasets/coco',imgsize = 192):
+    def __init__(self, annodir = '/home/wenshan/datasets/facing/facing_anno', imgdir='/home/wenshan/datasets/coco',imgsize = 192, data_aug=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []
         self.labellist = []
         self.bboxlist = []
+        self.aug = data_aug
 
         xmlreader = XmlReader()
 
@@ -95,6 +96,12 @@ class FacingLabelDataset(Dataset):
         label = self.labellist[idx]
 
         img = img[bbox[1]:bbox[3],bbox[0]:bbox[2],:] # crop the bbox
+
+        if self.aug:
+            img = im_hsv_augmentation(img)
+            img = im_crop(img)
+
+
         resize_scale = float(self.imgsize)/np.max(img.shape)
         img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
         img = img_normalize(img)

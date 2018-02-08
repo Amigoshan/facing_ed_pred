@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import img_normalize, img_denormalize, seq_show
+from utils import img_normalize, img_denormalize, seq_show, im_hsv_augmentation, im_crop
 import random
 import matplotlib.pyplot as plt
 
@@ -65,28 +65,6 @@ class FacingDroneUnlabelDataset(Dataset):
         print total_seq_num
         print self.episodeNum
 
-    # amigo add for data augmentation before normalization
-    def _im_hsv_augmentation(self, image, Hscale = 10,Sscale = 50, Vscale = 50):
-        imageHSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-        # change HSV
-        h = random.random()*2-1
-        s = random.random()*2-1
-        v = random.random()*2-1
-        imageHSV[:,:,0] = np.clip(imageHSV[:,:,0]+Hscale*h,0,255)
-        imageHSV[:,:,1] = np.clip(imageHSV[:,:,1]+Sscale*s,0,255)
-        imageHSV[:,:,2] = np.clip(imageHSV[:,:,2]+Vscale*v,0,255)
-        image = cv2.cvtColor(imageHSV,cv2.COLOR_HSV2BGR)
-        return image
-
-    def _im_crop(self, image, maxscale=0.1):
-        imgshape = image.shape
-        startx = int(random.random()*maxscale*imgshape[1])
-        starty = int(random.random()*maxscale*imgshape[0])
-        endx = int(imgshape[1]-random.random()*maxscale*imgshape[1])
-        endy = int(imgshape[0]-random.random()*maxscale*imgshape[0])
-        return image[starty:endy,startx:endx,:]
-
-
     def __len__(self):
         return self.N
 
@@ -104,8 +82,8 @@ class FacingDroneUnlabelDataset(Dataset):
             img = cv2.imread(self.imgnamelist[epiInd][idx+k])
 
             if self.aug:
-                img = self._im_hsv_augmentation(img)
-                img = self._im_crop(img)
+                img = im_hsv_augmentation(img)
+                img = im_crop(img)
 
             resize_scale = float(self.imgsize)/np.max(img.shape)
             img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)

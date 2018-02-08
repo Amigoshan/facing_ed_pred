@@ -2,6 +2,7 @@ import cv2
 import torch
 from math import sqrt, sin, cos
 import numpy as np
+import random
 # import torch.nn as nn
 
 def loadPretrain(model, preTrainModel):
@@ -115,3 +116,24 @@ def groupPlot(datax, datay, group=10):
 	datax, datay = datax.reshape((-1,group)), datay.reshape((-1,group))
 	datax, datay = datax.mean(axis=1), datay.mean(axis=1)
 	return (datax, datay)
+
+# amigo add for data augmentation before normalization
+def im_hsv_augmentation(image, Hscale = 10,Sscale = 50, Vscale = 50):
+    imageHSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    # change HSV
+    h = random.random()*2-1
+    s = random.random()*2-1
+    v = random.random()*2-1
+    imageHSV[:,:,0] = np.clip(imageHSV[:,:,0]+Hscale*h,0,255)
+    imageHSV[:,:,1] = np.clip(imageHSV[:,:,1]+Sscale*s,0,255)
+    imageHSV[:,:,2] = np.clip(imageHSV[:,:,2]+Vscale*v,0,255)
+    image = cv2.cvtColor(imageHSV,cv2.COLOR_HSV2BGR)
+    return image
+
+def im_crop(image, maxscale=0.1):
+    imgshape = image.shape
+    startx = int(random.random()*maxscale*imgshape[1])
+    starty = int(random.random()*maxscale*imgshape[0])
+    endx = int(imgshape[1]-random.random()*maxscale*imgshape[1])
+    endy = int(imgshape[0]-random.random()*maxscale*imgshape[0])
+    return image[starty:endy,startx:endx,:]

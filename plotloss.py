@@ -1,24 +1,61 @@
 import matplotlib.pyplot as plt
 import numpy as np
-with open('loss.log') as f:
+from utils import groupPlot
+from os.path import join
+
+logname = '7_16_loss'
+imgoutdir = 'resimg_facing'
+
+with open(join('log',logname+'.log')) as f:
 	lines=f.readlines()
 
 trainloss=[]
 valloss=[]
+unlabelloss=[]
 for line in lines:
-	ind1=line.find('loss:')
-	# print ind1
-	loss1 = line[ind1+6:ind1+13]
-	line = line[ind1+13:]
-	trainloss.append(float(loss1))
-	ind1=line.find('val-loss:')
-	# print ind1
-	loss1 = line[ind1+10:ind1+17]
-	# line = line[ind1+13,:]
-	# print loss1
-	valloss.append(float(loss1))
-plt.plot(np.array(trainloss))
-plt.plot(np.array(valloss))
-plt.ylim(0,2)
-plt.grid()
+	ind=line.find('loss:')
+	# print ind
+	if ind>0: 
+		line = line[ind+5:].strip()
+		loss = line.split(',')[0]
+		trainloss.append(float(loss))
+	ind=line.find('val-loss:')
+	if ind>0:
+		# print ind
+		line = line[ind+9:].strip()
+		loss = line.split(',')[0]
+		# line = line[ind1+13,:]
+		# print loss
+		valloss.append(float(loss))
+	ind=line.find('unlabel-loss:')
+	if ind>0:
+		# print ind
+		line = line[ind+13:].strip()
+		loss = line.split(',')[0]
+		# line = line[ind1+13,:]
+		# print loss
+		unlabelloss.append(float(loss))
+
+trainloss = np.array(trainloss)
+valloss = np.array(valloss)
+unlabelloss = np.array(unlabelloss)
+
+print 'train: %.5f, val: %.5f, unlabel: %.5f' % (np.mean(trainloss[-32:]), np.mean(valloss[-32:]), np.mean(unlabelloss[-32:]))
+print '%.2f, %.2f, %.2f' % (np.mean(trainloss[-32:]), np.mean(valloss[-32:]), np.mean(unlabelloss[-32:]))
+
+ax1 = plt.subplot(121)
+ax1.plot(trainloss)
+ax1.plot(valloss)
+ax1.grid()
+ax1.set_ylim(0,1)
+
+ax2 = plt.subplot(122)
+gpunlabelx, gpunlabely = groupPlot(range(len(unlabelloss)),unlabelloss)
+ax2.plot(unlabelloss)
+ax2.plot(gpunlabelx, gpunlabely, color='y')
+ax2.grid()
+ax2.set_ylim(0,2)
+
+plt.savefig(join(imgoutdir, logname+'.png'))
+
 plt.show()

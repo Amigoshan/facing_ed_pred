@@ -18,13 +18,13 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg
 
 
-exp_prefix = '7_11_'
-# preTrainModel = 'models_facing/5_2_ed_reg_2000.pkl'
+exp_prefix = '7_16_'
+# preTrainModel = 'models_facing/7_10_ed_reg_5000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
-Lr_label = 0.002 
+Lr_label = 0.001 
 Lr_unlabel = 0.001
 batch = 32
 trainstep = 5000
@@ -34,9 +34,9 @@ unlabel_batch = 32
 lamb = 10 
 alpha = 0.2
 thresh = 0.01
-train_layer_num = 8
-label_train_num = 1
-unlabel_train_num = 4
+train_layer_num = 0
+label_train_num = 2
+unlabel_train_num = 3
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -45,8 +45,8 @@ strides = [2,2,2,2,2,2,1]
 
 encoderReg = EncoderReg(hiddens, kernels, strides, paddings, actfunc='leaky')
 # encode the input using pretrained model
-print 'load pretrained...'
-encoderReg=loadPretrain(encoderReg,preTrainModel)
+# print 'load pretrained...'
+# encoderReg=loadPretrain(encoderReg,preTrainModel)
 encoderReg.cuda()
 
 

@@ -5,14 +5,14 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import img_normalize, img_denormalize, seq_show
+from utils import img_normalize, img_denormalize, seq_show, im_crop, im_hsv_augmentation
 
 import matplotlib.pyplot as plt
 
 
 class FacingDroneLabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/droneData/label',imgsize = 192):
+    def __init__(self, imgdir='/datasets/droneData/label',imgsize = 192, data_aug = False):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -26,7 +26,7 @@ class FacingDroneLabelDataset(Dataset):
                         'sw': [-0.707, -0.707],
                         'w':  [0., -1.],
                         'nw': [0.707, -0.707]}
-
+        self.aug = data_aug
 
         imgind = 0
         for clsfolder in listdir(imgdir):
@@ -49,6 +49,10 @@ class FacingDroneLabelDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.imgnamelist[idx]) # in bgr
         label = np.array(self.labellist[idx], dtype=np.float32)
+
+        if self.aug:
+            img = im_hsv_augmentation(img)
+            img = im_crop(img)
 
         resize_scale = float(self.imgsize)/np.max(img.shape)
         img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
@@ -76,8 +80,13 @@ if __name__=='__main__':
         cv2.imshow('img',img_denormalize(img))
         cv2.waitKey(0)
 
-    dataloader = DataLoader(facingDroneLabelDataset, batch_size=4, shuffle=True, num_workers=1)
+    dataloader = DataLoader(facingDroneLabelDataset, batch_size=40, shuffle=True, num_workers=1)
+
+    dataiter = iter(dataloader)
+
+    import ipdb;ipdb.set_trace()
 
     for sample in dataloader:
       print sample['label'], sample['img'].size()
       print seq_show(sample['img'].numpy())
+

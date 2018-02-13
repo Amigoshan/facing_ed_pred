@@ -3,7 +3,7 @@ import numpy as np
 from utils import groupPlot
 from os.path import join
 
-logname = '7_16_loss'
+logname = '8_13_loss'
 imgoutdir = 'resimg_facing'
 
 with open(join('log',logname+'.log')) as f:

@@ -49,7 +49,7 @@ def fileInDir(dirname):
 
 class FacingLabelDataset(Dataset):
 
-    def __init__(self, annodir = '/home/wenshan/datasets/facing/facing_anno', imgdir='/home/wenshan/datasets/coco',imgsize = 192, data_aug=False):
+    def __init__(self, annodir = '/datasets/facing/facing_anno', imgdir='/datadrive/coco',imgsize = 192, data_aug=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []

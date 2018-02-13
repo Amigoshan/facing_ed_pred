@@ -103,8 +103,8 @@ class FacingDroneUnlabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingDroneUnlabelDataset = FacingDroneUnlabelDataset(batch=12, data_aug=True)
-    for k in range(100):
+    facingDroneUnlabelDataset = FacingDroneUnlabelDataset(batch=24, data_aug=True)
+    for k in range(1):
         imgseq = facingDroneUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape
         seq_show(imgseq, scale=0.8)
@@ -113,6 +113,16 @@ if __name__=='__main__':
 
     dataloader = DataLoader(facingDroneUnlabelDataset, batch_size=1, shuffle=True, num_workers=1)
 
-    for sample in dataloader:
-      print sample.size()
-      
+    
+    while True:
+
+        # dataiter = iter(dataloader)
+
+        try:
+            sample = dataiter.next()
+        except:
+            dataiter = iter(dataloader)
+            sample = dataiter.next()
+
+        seq_show(sample.squeeze().numpy(), scale=0.4)
+          

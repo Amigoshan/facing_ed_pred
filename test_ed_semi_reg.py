@@ -1,12 +1,9 @@
 import cv2
-import torch
 from torch.autograd import Variable
-import torch.nn as nn
 from torch.utils.data import DataLoader
+import torch.nn as nn
 import numpy as np
 from os.path import join
-from math import exp
-
 
 from utils import loadPretrain2, loadPretrain, seq_show_with_arrow
 from facingDroneLabelData import FacingDroneLabelDataset
@@ -16,9 +13,9 @@ from StateEncoderDecoder import EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/8_1_ed_reg_3000.pkl'
+preTrainModel = 'models_facing/8_13_ed_reg_46000.pkl'
 batch = 8
-unlabel_batch = 8
+unlabel_batch = 32
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -35,17 +32,17 @@ criterion = nn.MSELoss()
 
 imgdataset = FacingDroneLabelDataset()
 valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
-# valset = FacingLabelDataset()
-# imgdataset = FacingLabelDataset()
 unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True)
+cocodata = FacingLabelDataset()
+
 
 valnum = 32
-dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=4)
-valloader = DataLoader(valset, batch_size=valnum, shuffle=True, num_workers=8)
-unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
+dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=1)
+valloader = DataLoader(valset, batch_size=valnum, shuffle=True, num_workers=1)
+unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=1)
+cocoloader = DataLoader(cocodata, batch_size=batch, shuffle=True, num_workers=1)
 
-
-def test_label(dataloader, encoderReg, criterion, display=True):
+def test_label(dataloader, encoderReg, criterion, display=True, compute_loss=True):
     # test on valset/trainset
     # return loss and accuracy
     ind = 0
@@ -59,11 +56,14 @@ def test_label(dataloader, encoderReg, criterion, display=True):
         inputState = Variable(inputImgs,requires_grad=False).cuda()
 
         output, _ = encoderReg(inputState)
-        loss = criterion(output, targetCls)
-        val_loss = loss.data[0]
-        mean_loss += val_loss
 
-        print labels.numpy()
+        if compute_loss:
+            loss = criterion(output, targetCls)
+            val_loss = loss.data[0]
+            mean_loss += val_loss
+
+            print labels.numpy()
+
         if display:
             seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy())
 
@@ -90,7 +90,7 @@ def test_unlabel(dataloader, encoderReg, display=True):
         break
 
     if display:
-        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy())
+        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), scale = 0.5)
     return output
 
 
@@ -99,4 +99,5 @@ for k in range(100):  # loop over the dataset multiple times
 
     test_label(dataloader, encoderReg, criterion, display = True)
     test_label(valloader, encoderReg, criterion, display = True)
+    test_label(cocoloader, encoderReg, criterion, display = True, compute_loss=False)
     pred = test_unlabel(unlabelloder, encoderReg, display=True)

@@ -19,22 +19,23 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg
 
 
-exp_prefix = '8_3_'
-# preTrainModel = 'models_facing/7_10_ed_reg_5000.pkl'
+exp_prefix = '8_12_3_'
+preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
-preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+# preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
 Lr_label = 0.001 
 batch = 32
-trainstep = 5000
+trainstep = 45000
 showiter = 10
 snapshot = 1000
 unlabel_batch = 32
-lamb = 0.5
+lamb = 0.1
+lamb2 = 0.03
 alpha = 0.2
 thresh = 0.01
-train_layer_num = 8
+train_layer_num = 10
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -86,6 +87,11 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
 
     output_unlabel, _ = encoderReg(inputState_unlabel)
 
+    # norm = output_unlabel * output_unlabel
+    # norm = norm.sum(dim=1)
+    # one_var = Variable(torch.ones(output_unlabel.size()[0])).cuda()
+    # normloss = (norm - one_var).abs().sum()
+
     loss_unlabel = Variable(torch.Tensor([0])).cuda()
     for ind1 in range(unlabel_batch-5): # try to make every sample contribute
         # randomly pick two other samples
@@ -108,7 +114,7 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     #         if wei<1e-2: # skip far away pairs
     #             break
 
-    loss = loss_label + loss_unlabel * lamb
+    loss = loss_label + loss_unlabel * lamb #+ normloss * lamb2
 
     # zero the parameter gradients
     regOptimizer.zero_grad()
@@ -116,7 +122,7 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     loss.backward()
     regOptimizer.step()
 
-    return loss_label.data[0], loss_unlabel.data[0], loss.data[0]
+    return loss_label.data[0], loss_unlabel.data[0], loss.data[0]#, normloss.data[0]
 
 
 def test_label(dataloader, encoderReg, criterion, batchnum = 1):
@@ -154,14 +160,14 @@ vallossplot = []
 val_loss = 0.0
 # val_acc = 0.0
 unlabel_loss = 0.0
-# norm_loss = 0.0
+norm_loss = 0.0
 ind = 0
+
+dataiter = iter(dataloader)
+unlabeliter = iter(unlabelloder)
 while True:
 
     ind += 1
-
-    dataiter = iter(dataloader)
-    unlabeliter = iter(unlabelloder)
 
     try:
         sample = dataiter.next()
@@ -186,7 +192,7 @@ while True:
     vallossplot.append(val_loss)
 
     print('[%s %d] loss: %.5f, label-loss: %.5f, val-loss: %.5f, unlabel-loss: %.5f' %
-    (exp_prefix[:-1], ind , add_loss, label_loss ,val_loss, unlabel_loss))
+        (exp_prefix[:-1], ind , add_loss, label_loss ,val_loss, unlabel_loss))
 
     if (ind)%snapshot==0:
         torch.save(encoderReg.state_dict(), predictModel+'_'+str(ind)+'.pkl')
@@ -212,6 +218,7 @@ lossplot = np.array(lossplot)
 lossplot = lossplot.reshape((-1,1))
 lossplot = lossplot.mean(axis=1)
 ax2.plot(lossplot)
+ax2.grid()
 
 ax3 = plt.subplot(133)
 unlabellossplot = np.array(unlabellossplot)

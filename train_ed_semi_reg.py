@@ -24,6 +24,7 @@ exp_prefix = '7_16_'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
+datadir = 'data_facing'
 Lr_label = 0.001 
 Lr_unlabel = 0.001
 batch = 32
@@ -227,6 +228,9 @@ while True:
 
     if (ind)%snapshot==0:
         torch.save(encoderReg.state_dict(), predictModel+'_'+str(ind)+'.pkl')
+        np.save(join(datadir,exp_prefix+'lossplot.npy'), lossplot)
+        np.save(join(datadir,exp_prefix+'vallossplot.npy'), vallossplot)
+        np.save(join(datadir,exp_prefix+'unlabellossplot.npy'), unlabellossplot)
 
     if ind==trainstep:
         break
@@ -254,5 +258,7 @@ ax2.grid()
 plt.savefig(join(imgoutdir, predictModel.split('/')[-1]+'.png'))
 # plt.ylim([0,1])
 plt.show()
+
 import ipdb; ipdb.set_trace()
 
+ 

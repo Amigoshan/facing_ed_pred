@@ -118,7 +118,7 @@ def groupPlot(datax, datay, group=10):
 	return (datax, datay)
 
 # amigo add for data augmentation before normalization
-def im_hsv_augmentation(image, Hscale = 10,Sscale = 80, Vscale = 80):
+def im_hsv_augmentation(image, Hscale = 10,Sscale = 60, Vscale = 60):
     imageHSV = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     # change HSV
     h = random.random()*2-1
@@ -130,7 +130,7 @@ def im_hsv_augmentation(image, Hscale = 10,Sscale = 80, Vscale = 80):
     image = cv2.cvtColor(imageHSV,cv2.COLOR_HSV2BGR)
     return image
 
-def im_crop(image, maxscale=0.1):
+def im_crop(image, maxscale=0.2):
     imgshape = image.shape
     startx = int(random.random()*maxscale*imgshape[1])
     starty = int(random.random()*maxscale*imgshape[0])

@@ -11,7 +11,15 @@ import matplotlib.pyplot as plt
 
 class XmlReader:
     def __init__(self):
-        self.dir2ind = {'n': 0,'ne': 1,'e': 2, 'se': 3,'s': 4,'sw': 5,'w': 6,'nw': 7}
+        # self.dir2ind = {'n': 0,'ne': 1,'e': 2, 'se': 3,'s': 4,'sw': 5,'w': 6,'nw': 7}
+        self.dir2val = {'n':  [1., 0.],
+                        'ne': [0.707, 0.707],
+                        'e':  [0., 1.],
+                        'se': [-0.707, 0.707],
+                        's':  [-1., 0.],
+                        'sw': [-0.707, -0.707],
+                        'w':  [0., -1.],
+                        'nw': [0.707, -0.707]}
 
     def readxml(self, xmldir):
         tree = xml.etree.ElementTree.parse(xmldir)
@@ -32,7 +40,7 @@ class XmlReader:
                 ymin = obj.findall('bndbox/ymin')[0].text
                 ymax = obj.findall('bndbox/ymax')[0].text
                 objects_list.append([float(xmin),float(ymin),float(xmax),float(ymax)])
-                dir_list.append(self.dir2ind[pose])
+                dir_list.append(self.dir2val[pose])
         return objects_list, dir_list
 
 
@@ -93,13 +101,13 @@ class FacingLabelDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.imgnamelist[idx]) # in bgr
         bbox = self.bboxlist[idx]
-        label = self.labellist[idx]
+        label = np.array(self.labellist[idx], dtype=np.float32)
 
         img = img[bbox[1]:bbox[3],bbox[0]:bbox[2],:] # crop the bbox
 
         if self.aug:
             img = im_hsv_augmentation(img)
-            img = im_crop(img)
+            img = im_crop(img,maxscale=0.08)
 
 
         resize_scale = float(self.imgsize)/np.max(img.shape)
@@ -119,11 +127,12 @@ class FacingLabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingLabelDataset = FacingLabelDataset()
+    facingLabelDataset = FacingLabelDataset(data_aug=True)
     for k in range(100):
         img = facingLabelDataset[k]['img']
         print img.dtype, facingLabelDataset[k]['label']
         print np.max(img), np.min(img), np.mean(img)
         print img.shape
+        img = img_denormalize(img)
         cv2.imshow('img',img)
         cv2.waitKey(0)

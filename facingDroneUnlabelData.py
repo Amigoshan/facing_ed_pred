@@ -1,3 +1,5 @@
+# extend with UCF data
+
 import cv2
 import numpy as np
 
@@ -12,45 +14,65 @@ import matplotlib.pyplot as plt
 
 class FacingDroneUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/droneData/',imgsize = 192, batch = 32, data_aug=False):
+    def __init__(self, imgdir='/datasets/dirimg/',imgsize = 192, batch = 32, data_aug=False, extend=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []
-        self.fileprefix = 'drone_'
+        # self.fileprefix = 'drone_'
         self.folderlist = ['4','7','11','17','23','30','32','33','37','38','49','50','52']
-        self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
+        # self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
         self.batch = batch
         self.aug = data_aug
         self.episodeNum = []
+
+        if extend:
+            for k in range(101,1585):
+                self.folderlist.append(str(k))
 
         for f_ind, foldername in enumerate(self.folderlist):
 
             folderpath = join(imgdir, foldername)
             # filenum = len(listdir(folderpath))
             # print 'find %d entities in %s ' % (filenum, folderpath) 
+            imglist = listdir(folderpath)
+            imglist = sorted(imglist)
 
             sequencelist = []
-            missimg = 0
-            for imgind in range(0, self.maxind[f_ind]):
-                filename = self.fileprefix+foldername+'_'+str(imgind)+'.jpg'
+            # missimg = 0
+            lastind = -1
+            for filename in imglist:
+                if filename.split('.')[-1]!='jpg': # only process jpg file
+                    continue
+                fileind = filename.split('.')[0].split('_')[-1]
+                try:
+                    fileind = int(fileind)
+                except:
+                    print 'filename parse error:', filename, fileind
+                    continue
+                # filename = self.fileprefix+foldername+'_'+str(imgind)+'.jpg'
                 filepathname = join(folderpath, filename)
-                if isfile(filepathname):
+
+                if lastind<0 or fileind==lastind+1:
+                # if isfile(filepathname):
                     sequencelist.append(filepathname)
-                    if missimg>0:
+                    lastind = fileind
+                    # if missimg>0:
                         # print '  -- last missimg', missimg
-                        missimg = 0
-                else:
-                    if len(sequencelist)>0:
-                        missimg = 1
+                    # missimg = 0
+                else: # the index is not continuous
+                    if len(sequencelist)>=batch:
+                        # missimg = 1
                         self.imgnamelist.append(sequencelist)
                         # print 'image lost:', filename
-                        # print '** sequence: ', len(sequencelist)
+                        print '** sequence: ', len(sequencelist)
+                        # print sequencelist
                         sequencelist = []
-                    else:
-                        missimg += 1
-            if len(sequencelist)>0:          
+                    lastind = -1
+                    # else:
+                        # missimg += 1
+            if len(sequencelist)>=batch:          
                 self.imgnamelist.append(sequencelist)
-                # print '** sequence: ', len(sequencelist)
+                print '** sequence: ', len(sequencelist)
                 sequencelist = []
 
 
@@ -103,7 +125,7 @@ class FacingDroneUnlabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingDroneUnlabelDataset = FacingDroneUnlabelDataset(batch=24, data_aug=True)
+    facingDroneUnlabelDataset = FacingDroneUnlabelDataset(batch=24, data_aug=True, extend=True)
     for k in range(1):
         imgseq = facingDroneUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape
@@ -113,10 +135,10 @@ if __name__=='__main__':
 
     dataloader = DataLoader(facingDroneUnlabelDataset, batch_size=1, shuffle=True, num_workers=1)
 
-    
+    dataiter = iter(dataloader)
+   
     while True:
 
-        # dataiter = iter(dataloader)
 
         try:
             sample = dataiter.next()
@@ -124,5 +146,5 @@ if __name__=='__main__':
             dataiter = iter(dataloader)
             sample = dataiter.next()
 
-        seq_show(sample.squeeze().numpy(), scale=0.4)
+        seq_show(sample.squeeze().numpy(), scale=0.8)
           

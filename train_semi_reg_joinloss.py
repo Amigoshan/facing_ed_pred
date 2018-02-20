@@ -19,23 +19,23 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg
 
 
-exp_prefix = '8_12_3_'
-preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
+exp_prefix = '9_3_'
+# preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
-# preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
 Lr_label = 0.001 
 batch = 32
-trainstep = 45000
+trainstep = 50000
 showiter = 10
-snapshot = 1000
+snapshot = 2000
 unlabel_batch = 32
-lamb = 0.1
-lamb2 = 0.03
+lamb = 0.02
+# lamb2 = 0.03
 alpha = 0.2
 thresh = 0.01
-train_layer_num = 10
+train_layer_num = 0
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -56,12 +56,13 @@ regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 
 imgdataset = FacingDroneLabelDataset(data_aug=True)
 valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
-# valset = FacingLabelDataset()
+imgdataset2 = FacingLabelDataset(data_aug=True)
 # imgdataset = FacingLabelDataset()
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True)
+unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True, extend=True)
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
+dataloader2 = DataLoader(imgdataset2, batch_size=batch, shuffle=True, num_workers=2)
 valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=2)
 unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
@@ -164,16 +165,25 @@ norm_loss = 0.0
 ind = 0
 
 dataiter = iter(dataloader)
+dataiter2 = iter(dataloader2)
 unlabeliter = iter(unlabelloder)
 while True:
 
     ind += 1
 
-    try:
-        sample = dataiter.next()
-    except:
-        dataiter = iter(dataloader)
-        sample = dataiter.next()
+    if ind%2==0:
+        try:
+            sample = dataiter.next()
+        except:
+            dataiter = iter(dataloader)
+            sample = dataiter.next()
+    else:
+        try:
+            sample = dataiter2.next()
+        except:
+            dataiter2 = iter(dataloader2)
+            sample = dataiter2.next()
+       
 
     try:
         unlabel_sample = unlabeliter.next()

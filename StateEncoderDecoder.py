@@ -165,23 +165,36 @@ class EncoderReg(nn.Module):
 		x = self.reg(x_encode.view(x_encode.size()[0], -1))
 		return x, x_encode
 
-# hiddens = [3,16,32,64,128,256]
-# kernels = [5,5,5,5,5]
-# paddings = [2,2,2,2,0]
-# strides = [2,2,2,2,1]
+class EncoderReg_norm(nn.Module):
 
-# stateEncoder = StateEncoder()
+	def __init__(self, hiddens=None, kernels=None, strides=None, paddings=None, actfunc='relu', regnum=2):
+		super(EncoderReg_norm,self).__init__()
+		self.encoder = StateEncoder(hiddens, kernels, strides, paddings, actfunc)
+		self.reg = nn.Linear(hiddens[-1], regnum)
+
+	def forward(self,x):
+		x_encode = self.encoder(x)
+		x = self.reg(x_encode.view(x_encode.size()[0], -1))
+		y = x.abs() # normalize so |x| + |y| = 1
+		y = y.sum(dim=1) 
+		# import ipdb; ipdb.set_trace()
+		x = x/y.unsqueeze(1)
+		return x, x_encode
+
+# hiddens = [3,16,32,32,64,64,128,256] 
+# kernels = [4,4,4,4,4,4,3]
+# paddings = [1,1,1,1,1,1,0]
+# strides = [2,2,2,2,2,2,1]
+
+# stateEncoder = EncoderReg_norm(hiddens, kernels, strides, paddings, actfunc='leaky')
 # print stateEncoder
-# from PacmanDataset import PacmanDataset
-# pacmandataset = PacmanDataset()
+# from facingLabelData import FacingLabelDataset
+# pacmandataset = FacingLabelDataset()
 # from torch.autograd import Variable
 # inputVar = Variable(torch.from_numpy(pacmandataset[0]['img'])).unsqueeze(0)
 # print inputVar
 # print inputVar.size()
-# encode = stateEncoder(inputVar)
+# encode, _ = stateEncoder(inputVar)
 # print encode.size()
 
-# stateDecoder = StateDecoder()
-# print stateDecoder
-# decode = stateDecoder(encode)
-# print decode.size()
+# print encode

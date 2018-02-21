@@ -9,11 +9,11 @@ from utils import loadPretrain2, loadPretrain, seq_show_with_arrow
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
-from StateEncoderDecoder import EncoderReg
+from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/8_13_ed_reg_46000.pkl'
+preTrainModel = 'models_facing/10_1_ed_reg_1000.pkl'
 batch = 8
 unlabel_batch = 32
 
@@ -32,7 +32,7 @@ criterion = nn.MSELoss()
 
 imgdataset = FacingDroneLabelDataset()
 valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True)
+unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True, extend=True)
 cocodata = FacingLabelDataset()
 
 
@@ -56,6 +56,7 @@ def test_label(dataloader, encoderReg, criterion, display=True, compute_loss=Tru
         inputState = Variable(inputImgs,requires_grad=False).cuda()
 
         output, _ = encoderReg(inputState)
+        print 'network output:', output.data
 
         if compute_loss:
             loss = criterion(output, targetCls)

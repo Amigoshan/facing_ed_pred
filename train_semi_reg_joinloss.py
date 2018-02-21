@@ -16,26 +16,27 @@ from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
-from StateEncoderDecoder import EncoderReg
+from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
 
-exp_prefix = '9_3_'
+exp_prefix = '10_1_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
+datadir = 'data_facing'
 Lr_label = 0.001 
 batch = 32
-trainstep = 50000
+trainstep = 10000
 showiter = 10
-snapshot = 2000
+snapshot = 1000
 unlabel_batch = 32
 lamb = 0.02
 # lamb2 = 0.03
-alpha = 0.2
-thresh = 0.01
-train_layer_num = 0
+# alpha = 0.2
+# thresh = 0.01
+train_layer_num = 10
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -78,7 +79,7 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     targetreg = targetreg.cuda()
 
     # forward + backward + optimize
-    output, _ = encoderReg(inputState)
+    output, encode = encoderReg(inputState)
     loss_label = criterion(output, targetreg)
 
     # unlabeled data
@@ -115,11 +116,12 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     #         if wei<1e-2: # skip far away pairs
     #             break
 
+    # loss = encode.sum()
     loss = loss_label + loss_unlabel * lamb #+ normloss * lamb2
 
     # zero the parameter gradients
     regOptimizer.zero_grad()
-
+    # loss_label.backward()
     loss.backward()
     regOptimizer.step()
 
@@ -206,6 +208,9 @@ while True:
 
     if (ind)%snapshot==0:
         torch.save(encoderReg.state_dict(), predictModel+'_'+str(ind)+'.pkl')
+        np.save(join(datadir,exp_prefix+'lossplot.npy'), lossplot)
+        np.save(join(datadir,exp_prefix+'vallossplot.npy'), vallossplot)
+        np.save(join(datadir,exp_prefix+'unlabellossplot.npy'), unlabellossplot)
 
     if ind==trainstep:
         break

@@ -84,8 +84,8 @@ class FacingDroneUnlabelDataset(Dataset):
             total_seq_num += len(sequ) - batch + 1
             self.episodeNum.append(total_seq_num)
         self.N = total_seq_num
-        print total_seq_num
-        print self.episodeNum
+        # print total_seq_num
+        # print self.episodeNum
 
     def __len__(self):
         return self.N

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 class FacingDroneUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/dirimg/',imgsize = 192, batch = 32, data_aug=False, extend=False):
+    def __init__(self, imgdir='/home/wenshan/datasets/dirimg/',imgsize = 192, batch = 32, data_aug=False, extend=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []

@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 class FacingDroneLabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/droneData/label',imgsize = 192, data_aug = False):
+    def __init__(self, imgdir='/home/wenshan/datasets/droneData/label',imgsize = 192, data_aug = False):
 
         self.imgsize = imgsize
         self.imgnamelist = []

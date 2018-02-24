@@ -16,7 +16,7 @@ np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 preTrainModel = 'models_facing/10_1_ed_reg_1000.pkl'
 batch = 8
 unlabel_batch = 32
-
+datasetdir = '/datasets'
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
 paddings = [1,1,1,1,1,1,0]
@@ -30,10 +30,13 @@ encoderReg.cuda()
 
 criterion = nn.MSELoss()
 
-imgdataset = FacingDroneLabelDataset()
-valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True, extend=True)
-cocodata = FacingLabelDataset()
+imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), data_aug=True)
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
+cocodata = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
+                                 imgdir=join(datasetdir,'facing/facing_img_coco'), 
+                                 data_aug=True)
+unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
+                                       batch = unlabel_batch, data_aug=True, extend=True)
 
 
 valnum = 32

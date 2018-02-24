@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import img_normalize, img_denormalize, im_hsv_augmentation, im_crop
+from utils import im_scale_norm_pad, img_denormalize, im_hsv_augmentation, im_crop
 
 import matplotlib.pyplot as plt
 
@@ -78,9 +78,9 @@ class FacingLabelDataset(Dataset):
 
             datayear = xmlfile.split('_')[1]
             if datayear=='train2014':
-                imagefilepath = join(imgdir, datayear, xmlfile.split('.')[0]+'.jpg')
+                imagefilepath = join(imgdir, xmlfile.split('.')[0]+'.jpg')
             elif datayear=='train2017':
-                imagefilepath = join(imgdir, datayear, xmlfile.split('.')[0].split('_')[-1]+'.jpg')
+                imagefilepath = join(imgdir, xmlfile.split('.')[0].split('_')[-1]+'.jpg')
             else:
                 print 'wrong datayear:', datayear
                 continue
@@ -110,17 +110,7 @@ class FacingLabelDataset(Dataset):
             img = im_crop(img,maxscale=0.08)
 
 
-        resize_scale = float(self.imgsize)/np.max(img.shape)
-        img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-        img = img_normalize(img)
-        # print img.shape
-        imgw = img.shape[2]
-        imgh = img.shape[1]
-        startx = (self.imgsize-imgw)/2
-        starty = (self.imgsize-imgh)/2
-        # print startx, starty
-        outimg = np.zeros((3,self.imgsize,self.imgsize), dtype=np.float32)
-        outimg[:, starty:starty+imgh, startx:startx+imgw] = img
+        outimg = im_scale_norm_pad(img, outsize=192, down_reso=True)
 
         return {'img':outimg, 'label':label}
 

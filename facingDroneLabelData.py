@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import img_normalize, img_denormalize, seq_show, im_crop, im_hsv_augmentation
+from utils import im_scale_norm_pad, img_denormalize, seq_show, im_crop, im_hsv_augmentation
 
 import matplotlib.pyplot as plt
 
@@ -54,17 +54,20 @@ class FacingDroneLabelDataset(Dataset):
             img = im_hsv_augmentation(img)
             img = im_crop(img)
 
-        resize_scale = float(self.imgsize)/np.max(img.shape)
-        img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-        img = img_normalize(img)
-        # print img.shape
-        imgw = img.shape[2]
-        imgh = img.shape[1]
-        startx = (self.imgsize-imgw)/2
-        starty = (self.imgsize-imgh)/2
-        # print startx, starty
-        outimg = np.zeros((3,self.imgsize,self.imgsize), dtype=np.float32)
-        outimg[:, starty:starty+imgh, startx:startx+imgw] = img
+
+        outimg = im_scale_norm_pad(img, outsize=192, down_reso=True)
+
+        # resize_scale = float(self.imgsize)/np.max(img.shape)
+        # img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
+        # img = img_normalize(img)
+        # # print img.shape
+        # imgw = img.shape[2]
+        # imgh = img.shape[1]
+        # startx = (self.imgsize-imgw)/2
+        # starty = (self.imgsize-imgh)/2
+        # # print startx, starty
+        # outimg = np.zeros((3,self.imgsize,self.imgsize), dtype=np.float32)
+        # outimg[:, starty:starty+imgh, startx:startx+imgw] = img
 
         return {'img':outimg, 'label':label}
 

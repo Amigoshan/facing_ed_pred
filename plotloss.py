@@ -5,6 +5,7 @@ from os.path import join
 
 logname = '8_13_loss'
 imgoutdir = 'resimg_facing'
+AvgNum = 100
 
 with open(join('log',logname+'.log')) as f:
 	lines=f.readlines()
@@ -40,8 +41,8 @@ trainloss = np.array(trainloss)
 valloss = np.array(valloss)
 unlabelloss = np.array(unlabelloss)
 
-print 'train: %.5f, val: %.5f, unlabel: %.5f' % (np.mean(trainloss[-32:]), np.mean(valloss[-32:]), np.mean(unlabelloss[-32:]))
-print '%.2f, %.2f, %.2f' % (np.mean(trainloss[-32:]), np.mean(valloss[-32:]), np.mean(unlabelloss[-32:]))
+print 'train: %.5f, val: %.5f, unlabel: %.5f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
+print '%.2f, %.2f, %.2f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
 
 ax1 = plt.subplot(121)
 ax1.plot(trainloss)

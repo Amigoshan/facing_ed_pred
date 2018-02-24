@@ -19,16 +19,17 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
 
-exp_prefix = '10_1_'
+exp_prefix = '11_1_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
+datasetdir = '/datasets'
 Lr_label = 0.001 
 batch = 32
-trainstep = 10000
+trainstep = 100000
 showiter = 10
 snapshot = 1000
 unlabel_batch = 32
@@ -36,7 +37,7 @@ lamb = 0.02
 # lamb2 = 0.03
 # alpha = 0.2
 # thresh = 0.01
-train_layer_num = 10
+train_layer_num = 0
 
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
@@ -55,11 +56,14 @@ criterion = nn.MSELoss()
 # regOptimizer = optim.SGD(predictNet.parameters(), lr = Lr, momentum=0.9)
 regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 
-imgdataset = FacingDroneLabelDataset(data_aug=True)
-valset = FacingDroneLabelDataset(imgdir='/datasets/droneData/val')
-imgdataset2 = FacingLabelDataset(data_aug=True)
+imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), data_aug=True)
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
+imgdataset2 = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
+                                 imgdir=join(datasetdir,'facing/facing_img_coco'), 
+                                 data_aug=True)
 # imgdataset = FacingLabelDataset()
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True, extend=True)
+unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
+                                       batch = unlabel_batch, data_aug=True, extend=True)
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
@@ -198,8 +202,8 @@ while True:
     labellossplot.append(label_loss)
     unlabellossplot.append(unlabel_loss)
 
-    # if ind % showiter == 0:    # print every 20 mini-batches
-    val_loss = test_label(valloader, encoderReg, criterion, batchnum = 1)
+    if ind % showiter == 0:    # print every 20 mini-batches
+        val_loss = test_label(valloader, encoderReg, criterion, batchnum = 1)
     # train_loss, train_acc = test_label(dataloader, encoderReg, criterion, batchnum = 3)
     vallossplot.append(val_loss)
 
@@ -218,7 +222,7 @@ while True:
 
 
 import matplotlib.pyplot as plt
-ax1 = plt.subplot(131)
+ax1 = plt.subplot(221)
 labellossplot = np.array(labellossplot)
 labellossplot = labellossplot.reshape((-1,1))
 labellossplot = labellossplot.mean(axis=1)
@@ -228,14 +232,14 @@ vallossplot = np.array(vallossplot)
 ax1.plot(vallossplot)
 ax1.grid()
 
-ax2 = plt.subplot(132)
+ax2 = plt.subplot(222)
 lossplot = np.array(lossplot)
 lossplot = lossplot.reshape((-1,1))
 lossplot = lossplot.mean(axis=1)
 ax2.plot(lossplot)
 ax2.grid()
 
-ax3 = plt.subplot(133)
+ax3 = plt.subplot(223)
 unlabellossplot = np.array(unlabellossplot)
 gpunlabelx, gpunlabely = groupPlot(range(len(unlabellossplot)),unlabellossplot)
 ax3.plot(unlabellossplot)

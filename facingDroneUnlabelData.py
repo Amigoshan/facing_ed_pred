@@ -109,17 +109,6 @@ class FacingDroneUnlabelDataset(Dataset):
 
             outimg = im_scale_norm_pad(img, outsize=192, down_reso=True, down_len=10)
 
-            # resize_scale = float(self.imgsize)/np.max(img.shape)
-            # img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-            # img = img_normalize(img)
-            # # print img.shape
-            # imgw = img.shape[2]
-            # imgh = img.shape[1]
-            # startx = (self.imgsize-imgw)/2
-            # starty = (self.imgsize-imgh)/2
-            # # print startx, starty
-            # outimg = np.zeros((3,self.imgsize,self.imgsize), dtype=np.float32)
-            # outimg[:, starty:starty+imgh, startx:startx+imgw] = img
             imgseq.append(outimg)
 
         return np.array(imgseq)

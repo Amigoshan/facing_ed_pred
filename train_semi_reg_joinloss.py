@@ -19,21 +19,21 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
 
-exp_prefix = '11_1_'
+exp_prefix = '12_1_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
-datasetdir = '/datasets'
-Lr_label = 0.001 
+datasetdir = '/home/wenshan/datasets'
+Lr_label = 0.0005 
 batch = 32
-trainstep = 100000
-showiter = 10
+trainstep = 1000000
+showiter = 50
 snapshot = 1000
 unlabel_batch = 32
-lamb = 0.02
+lamb = 0.005
 # lamb2 = 0.03
 # alpha = 0.2
 # thresh = 0.01
@@ -53,6 +53,7 @@ encoderReg.cuda()
 
 paramlist = list(encoderReg.parameters())
 criterion = nn.MSELoss()
+# kl_criterion = nn.KLDivLoss()
 # regOptimizer = optim.SGD(predictNet.parameters(), lr = Lr, momentum=0.9)
 regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 
@@ -91,7 +92,7 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     inputState_unlabel = Variable(imgseq,requires_grad=True).cuda()
     inputState_unlabel = inputState_unlabel.cuda()
 
-    output_unlabel, _ = encoderReg(inputState_unlabel)
+    output_unlabel, x_encode = encoderReg(inputState_unlabel)
 
     # norm = output_unlabel * output_unlabel
     # norm = norm.sum(dim=1)
@@ -101,13 +102,16 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
     loss_unlabel = Variable(torch.Tensor([0])).cuda()
     for ind1 in range(unlabel_batch-5): # try to make every sample contribute
         # randomly pick two other samples
-        ind2 = random.randint(ind1+2, unlabel_batch-1)
-        ind3 = random.randint(ind1+1, ind2-1)
+        ind2 = random.randint(ind1+2, unlabel_batch-1) # big distance
+        ind3 = random.randint(ind1+1, ind2-1) # small distance
 
-        diff_big = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
-        diff_big = diff_big.sum()/2.0
-        diff_small = (output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
-        diff_small = diff_small.sum()/2.0
+        target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
+        target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
+        diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        # diff_big = diff_big.sum()/2.0
+        diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        # import ipdb; ipdb.set_trace()
+        # diff_small = diff_small.sum()/2.0
         loss_unlabel = loss_unlabel + (diff_small-diff_big).clamp(0)
     # for ind1 in range(unlabel_batch-1):
     #     for ind2 in range(ind1+1, unlabel_batch):

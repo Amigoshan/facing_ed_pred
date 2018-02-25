@@ -41,9 +41,11 @@ class TrackingUnlabelDataset(Dataset):
                 imglist_per_obj = {}
                 for x in imglist:
                     obj_id = x.strip().split('_')[-7]
-                    if obj_id not in imglist_per_obj:
-                        imglist_per_obj[obj_id] = []
-                    imglist_per_obj[obj_id].append(x)
+                    video_name = '_'.join(x.strip().split('/')[-1].split('_')[:6])
+                    key = (video_name, obj_id)
+                    if key not in imglist_per_obj:
+                        imglist_per_obj[key] = []
+                    imglist_per_obj[key].append(x)
 
                 for k, v in imglist_per_obj.items():
                     ## need to sort according to frame_num

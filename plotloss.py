@@ -3,14 +3,14 @@ import numpy as np
 from utils import groupPlot
 from os.path import join
 
-logname = '8_13_loss'
+logname = '12_7_loss'
 imgoutdir = 'resimg_facing'
 AvgNum = 100
 
 datadir = 'data_facing'
-exp_pref = '12_5_'
-LOGFILE = False
-plotnum = 20000
+exp_pref = '12_3_'
+LOGFILE = True
+plotnum = 300000
 
 if LOGFILE:
 

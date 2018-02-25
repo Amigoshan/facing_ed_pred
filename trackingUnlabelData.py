@@ -19,7 +19,7 @@ class TrackingUnlabelDataset(Dataset):
         self.imgnamelist = []
         # self.fileprefix = 'drone_'
         self.folderlist = ['train'] # can add val
-        self.class_type = ['car']  # can add 'person'
+        self.class_type = ['person']  # can add 'person'
         self.batch = batch
         self.aug = data_aug
         self.episodeNum = []
@@ -113,12 +113,13 @@ class TrackingUnlabelDataset(Dataset):
         imgseq = []
         for k in range(self.batch):
             img = cv2.imread(self.imgnamelist[epiInd][idx+k])
-
+            print self.imgnamelist[epiInd][idx+k]
+            
             if self.aug:
                 img = im_hsv_augmentation(img)
                 img = im_crop(img)
 
-            outimg = im_scale_norm_pad(img, outsize=192, down_reso=True, down_len=10)
+            outimg = im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=10)
 
             imgseq.append(outimg)
 
@@ -128,7 +129,7 @@ class TrackingUnlabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    trackingUnlabelDataset = TrackingUnlabelDataset(batch=24, data_aug=True)
+    trackingUnlabelDataset = TrackingUnlabelDataset(batch=10, data_aug=True)
     for k in range(1):
         imgseq = trackingUnlabelDataset[k*1000]
         print imgseq.dtype, imgseq.shape

@@ -13,7 +13,7 @@ from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/10_1_ed_reg_1000.pkl'
+preTrainModel = 'models_facing/12_7_ed_reg_80000.pkl'
 batch = 8
 unlabel_batch = 32
 datasetdir = '/datasets'

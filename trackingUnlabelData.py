@@ -18,9 +18,8 @@ class TrackingUnlabelDataset(Dataset):
         self.imgsize = imgsize
         self.imgnamelist = []
         # self.fileprefix = 'drone_'
-        self.folderlist = ['train']
+        self.folderlist = ['train'] # can add val
         self.class_type = ['car']  # can add 'person'
-        # self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
         self.batch = batch
         self.aug = data_aug
         self.episodeNum = []
@@ -49,8 +48,6 @@ class TrackingUnlabelDataset(Dataset):
                 for k, v in imglist_per_obj.items():
                     ## need to sort according to frame_num
                     imglist = sorted(v, key=lambda x:x.strip().split('_')[-8])
-                    if k=='345':
-                        print(imglist)
                     # missimg = 0
                     lastind = -1
                     sequencelist = []

@@ -125,11 +125,7 @@ class TrackingUnlabelDataset(Dataset):
                 img = im_hsv_augmentation(img)
                 img = im_crop(img,maxscale=0.1)
 
-<<<<<<< HEAD
-            outimg = im_scale_norm_pad(img, outsize=192, down_reso=True, down_len=10)
-=======
             outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
->>>>>>> ab6beac641a82228dcfa8448556aa37e87fb7898
 
             imgseq.append(outimg)
 

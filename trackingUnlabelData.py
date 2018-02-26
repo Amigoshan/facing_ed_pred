@@ -79,7 +79,7 @@ class TrackingUnlabelDataset(Dataset):
                                 # print 'image lost:', filename
                                 print '** sequence: ', len(sequencelist)
                                 # print sequencelist
-                                sequencelist = []
+                            sequencelist = []
                             lastind = -1
                             # else:
                                 # missimg += 1
@@ -115,13 +115,13 @@ class TrackingUnlabelDataset(Dataset):
         imgseq = []
         for k in range(self.batch):
             img = cv2.imread(self.imgnamelist[epiInd][idx+k])
-            print self.imgnamelist[epiInd][idx+k]
+            # print self.imgnamelist[epiInd][idx+k]
             
             if self.aug:
                 img = im_hsv_augmentation(img)
-                img = im_crop(img)
+                img = im_crop(img,maxscale=0.1)
 
-            outimg = im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=10)
+            outimg = im_scale_norm_pad(img, outsize=192, down_reso=True, down_len=10)
 
             imgseq.append(outimg)
 

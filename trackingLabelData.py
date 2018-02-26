@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import im_scale_norm_pad, img_denormalize, seq_show, im_crop, im_hsv_augmentation
+from utils import im_scale_norm_pad, img_denormalize, seq_show, im_crop, im_hsv_augmentation, put_arrow
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -45,12 +45,15 @@ if __name__=='__main__':
     np.set_printoptions(precision=4)
     trackingLabelDataset = TrackingLabelDataset()
     print len(trackingLabelDataset)
-    for k in range(1):
-        img = trackingLabelDataset[k*10]['img']
-        print img.dtype, trackingLabelDataset[k*10]['label']
+    for k in range(100):
+        img = trackingLabelDataset[k*100]['img']
+        label = trackingLabelDataset[k*100]['label']
+        print img.dtype, label
         print np.max(img), np.min(img), np.mean(img)
         print img.shape
-        cv2.imshow('img',img_denormalize(img))
+        img = img_denormalize(img)
+        img = put_arrow(img, label)
+        cv2.imshow('img',img)
         cv2.waitKey(0)
 
     dataloader = DataLoader(trackingLabelDataset, batch_size=4, shuffle=True, num_workers=1)

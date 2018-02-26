@@ -83,13 +83,13 @@ def seq_show(imgseq, scale = 0.3):
     cv2.imshow('img',imgshow)
     cv2.waitKey(0)
 
-def put_arrow(img, dir):
+def put_arrow(img, dir, centerx=150, centery=96):
     # print type(img), img.dtype, img.shape
     img = img.copy()
-    cv2.line(img, (66,150), (126,150), (0, 255, 0), 2)
-    cv2.line(img, (96,120), (96,180), (0, 255, 0), 2)
+    cv2.line(img, (centery-30,centerx), (centery+30,centerx), (0, 255, 0), 2)
+    cv2.line(img, (centery,centerx-30), (centery,centerx+30), (0, 255, 0), 2)
 
-    cv2.arrowedLine(img, (96,150), (int(96+40*dir[1]),int(150-40*dir[0])), (0, 0, 255), 4)
+    cv2.arrowedLine(img, (centery,centerx), (int(centery+40*dir[1]),int(centerx-40*dir[0])), (0, 0, 255), 4)
 
     return img
 
@@ -140,7 +140,7 @@ def im_crop(image, maxscale=0.2, low_resol=False):
 
 def im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=30):
     minlen = np.min(img.shape[0:2])
-    down_len = random.randint(down_len,down_len*3)
+    down_len = random.randint(down_len,down_len*4)
     if down_reso and minlen>down_len:
         resize_scale = float(down_len)/minlen
         img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)

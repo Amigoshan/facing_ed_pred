@@ -16,27 +16,28 @@ from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
+from trackingLabelData import TrackingLabelDataset
+from trackingUnlabelData import TrackingUnlabelDataset
 from StateEncoderDecoder import EncoderReg_norm as EncoderReg
 
-
-exp_prefix = '12_1_'
-# preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
+exp_prefix = '13_4_'
+# preTrainModel = 'models_facing/13_1_ed_reg_100000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'ed_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
-datasetdir = '/home/wenshan/datasets'
+datasetdir = '/datasets'
 Lr_label = 0.0005 
 batch = 32
-trainstep = 1000000
+trainstep = 200000
 showiter = 50
-snapshot = 1000
+snapshot = 2000
 unlabel_batch = 32
-lamb = 0.005
+lamb = 0.02
 # lamb2 = 0.03
 # alpha = 0.2
-# thresh = 0.01
+thresh = 0.01
 train_layer_num = 0
 
 hiddens = [3,16,32,32,64,64,128,256] 
@@ -62,15 +63,19 @@ valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
 imgdataset2 = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
                                  imgdir=join(datasetdir,'facing/facing_img_coco'), 
                                  data_aug=True)
+imgdataset3 = TrackingLabelDataset(data_aug=True)
 # imgdataset = FacingLabelDataset()
 unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
                                        batch = unlabel_batch, data_aug=True, extend=True)
+# unlabelset2 = TrackingUnlabelDataset(batch = unlabel_batch, data_aug=True)
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
 dataloader2 = DataLoader(imgdataset2, batch_size=batch, shuffle=True, num_workers=2)
+dataloader3 = DataLoader(imgdataset3, batch_size=batch, shuffle=True, num_workers=2)
 valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=2)
 unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
+# unlabelloder2 = DataLoader(unlabelset2, batch_size=1, shuffle=True, num_workers=2)
 
 def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criterion, lamb):
 
@@ -105,14 +110,16 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
         ind2 = random.randint(ind1+2, unlabel_batch-1) # big distance
         ind3 = random.randint(ind1+1, ind2-1) # small distance
 
-        target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
-        target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
-        diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
-        # diff_big = diff_big.sum()/2.0
-        diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        # target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
+        # target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
+        # diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = diff_big.sum()/2.0
+        # diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = (output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = diff_small.sum()/2.0
         # import ipdb; ipdb.set_trace()
-        # diff_small = diff_small.sum()/2.0
-        loss_unlabel = loss_unlabel + (diff_small-diff_big).clamp(0)
+        loss_unlabel = loss_unlabel + (diff_small+thresh-diff_big).clamp(0)
     # for ind1 in range(unlabel_batch-1):
     #     for ind2 in range(ind1+1, unlabel_batch):
     #         w = abs(ind1 - ind2)
@@ -176,30 +183,46 @@ ind = 0
 
 dataiter = iter(dataloader)
 dataiter2 = iter(dataloader2)
+dataiter3 = iter(dataloader3)
 unlabeliter = iter(unlabelloder)
+# unlabeliter2 = iter(unlabelloder2)
 while True:
 
     ind += 1
 
-    if ind%2==0:
+    if ind%3==0:
         try:
             sample = dataiter.next()
         except:
             dataiter = iter(dataloader)
             sample = dataiter.next()
-    else:
+    elif ind%3==1:
         try:
             sample = dataiter2.next()
         except:
             dataiter2 = iter(dataloader2)
             sample = dataiter2.next()
        
+    else:
+        try:
+            sample = dataiter3.next()
+        except:
+            dataiter3 = iter(dataloader3)
+            sample = dataiter3.next()
 
+    # if ind%2==0:
     try:
         unlabel_sample = unlabeliter.next()
     except:
         unlabeliter = iter(unlabelloder)
         unlabel_sample = unlabeliter.next()
+    # elif ind%2==1:
+    #     try:
+    #         unlabel_sample = unlabeliter2.next()
+    #     except:
+    #         unlabeliter2 = iter(unlabelloder2)
+    #         unlabel_sample = unlabeliter2.next()
+
 
     label_loss, unlabel_loss, add_loss = train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criterion, lamb)
     lossplot.append(add_loss)

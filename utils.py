@@ -64,9 +64,10 @@ def img_normalize(img, mean=[0,0,0], std=[1,1,1]): # resnet: mean=[0.485, 0.456,
     img = img.transpose(2,0,1)
     return img
 
-def img_denormalize(img): # used for visualization only
+def img_denormalize(img, mean=[0,0,0], std=[1,1,1]): # used for visualization only
     # print img.shape
     img = img.transpose(1,2,0)
+    img = img*np.array(std)+np.array(mean)
     img = img.clip(0,1) # network can output values out of range
     img = (img*255).astype(np.uint8)
     img = img[:,:,[2,1,0]]
@@ -94,13 +95,13 @@ def put_arrow(img, dir):
 
     return img
 
-def seq_show_with_arrow(imgseq, dirseq, scale = 0.8):
+def seq_show_with_arrow(imgseq, dirseq, scale = 0.8, mean=[0,0,0], std=[1,1,1]):
     # imgseq: a numpy array: n x 3 x h x w
     # dirseq: a numpy array: n x 2
     imgnum = imgseq.shape[0]
     imgshow = []
     for k in range(imgnum):
-        img = img_denormalize(imgseq[k,:,:,:])
+        img = img_denormalize(imgseq[k,:,:,:], mean, std)
         img = put_arrow(img, dirseq[k,:])
         imgshow.append(img) # n x h x w x 3
     imgshow = np.array(imgshow)

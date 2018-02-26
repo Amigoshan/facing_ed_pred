@@ -17,10 +17,8 @@ preTrainModel = 'models_facing/15_1_resnet_reg_24000.pkl'
 batch = 8
 unlabel_batch = 32
 datasetdir = '/home/wenshan/datasets'
-hiddens = [3,16,32,32,64,64,128,256] 
-kernels = [4,4,4,4,4,4,3]
-paddings = [1,1,1,1,1,1,0]
-strides = [2,2,2,2,2,2,1]
+mean = [0.485, 0.456, 0.406]
+std = [0.229, 0.224, 0.225]
 
 encoderReg = ResnetReg_norm()
 # encode the input using pretrained model
@@ -31,16 +29,16 @@ encoderReg.cuda()
 criterion = nn.MSELoss()
 
 imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), 
-                                    data_aug=True,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                    data_aug=True,mean=mean,std=std)
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=mean,std=std)
 cocodata = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
                                  imgdir=join(datasetdir,'facing/facing_img_coco'), 
                                  data_aug=True,
-                                 mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                 mean=mean,std=std)
 # imgdataset = FacingLabelDataset()
 unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
                                        batch = unlabel_batch, data_aug=True, extend=True,
-                                       mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                       mean=mean,std=std)
 
 valnum = 32
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=1)
@@ -73,7 +71,7 @@ def test_label(dataloader, encoderReg, criterion, display=True, compute_loss=Tru
             print 'loss ',loss.data[0]
 
         if display:
-            seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy())
+            seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), mean=mean,std=std)
 
         break
 
@@ -98,7 +96,7 @@ def test_unlabel(dataloader, encoderReg, display=True):
         break
 
     if display:
-        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), scale = 0.5)
+        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), scale = 0.5, mean=mean,std=std)
     return output
 
 

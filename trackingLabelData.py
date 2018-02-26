@@ -12,10 +12,14 @@ import matplotlib.pyplot as plt
 
 class TrackingLabelDataset(Dataset):
 
-    def __init__(self, csv_file='/datadrive/data/aayush/combined_data2/train/annotations/person_annotations.csv',imgsize = 192, data_aug = False):
+    def __init__(self, csv_file='/datadrive/data/aayush/combined_data2/train/annotations/person_annotations.csv',
+                        imgsize = 192, data_aug = False,
+                        mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.aug = data_aug
+        self.mean = mean
+        self.std = std
         self.csv_file = pd.read_csv(csv_file)
 
     def __len__(self):
@@ -36,7 +40,7 @@ class TrackingLabelDataset(Dataset):
             img = im_hsv_augmentation(img)
             img = im_crop(img)
 
-        outimg = im_scale_norm_pad(img, outsize=192, down_reso=True)
+        outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
         return {'img':outimg, 'label':label}
 

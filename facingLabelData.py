@@ -57,13 +57,19 @@ def fileInDir(dirname):
 
 class FacingLabelDataset(Dataset):
 
-    def __init__(self, annodir = '/home/wenshan/datasets/facing/facing_anno', imgdir='/home/wenshan/datasets/coco',imgsize = 192, data_aug=False):
+    def __init__(self, annodir = '/home/wenshan/datasets/facing/facing_anno', 
+                        imgdir='/home/wenshan/datasets/coco',
+                        imgsize = 192, 
+                        data_aug=False,
+                        mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.imgnamelist = []
         self.labellist = []
         self.bboxlist = []
         self.aug = data_aug
+        self.mean = mean
+        self.std = std
 
         xmlreader = XmlReader()
 
@@ -110,7 +116,7 @@ class FacingLabelDataset(Dataset):
             img = im_crop(img,maxscale=0.08)
 
 
-        outimg = im_scale_norm_pad(img, outsize=192, down_reso=True)
+        outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
         return {'img':outimg, 'label':label}
 

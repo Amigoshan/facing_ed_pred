@@ -14,7 +14,10 @@ import matplotlib.pyplot as plt
 
 class FacingDroneUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datasets/dirimg/',imgsize = 192, batch = 32, data_aug=False, extend=False):
+    def __init__(self, imgdir='/datasets/dirimg/',
+                        imgsize = 192, batch = 32, 
+                        data_aug=False, extend=False,
+                        mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -23,6 +26,8 @@ class FacingDroneUnlabelDataset(Dataset):
         # self.maxind =   [4918,4100,5265,7550,4157,6350,6492,8402,5131,4907,2574,3140,4555]
         self.batch = batch
         self.aug = data_aug
+        self.mean = mean
+        self.std = std
         self.episodeNum = []
 
         if extend:
@@ -107,7 +112,7 @@ class FacingDroneUnlabelDataset(Dataset):
                 img = im_hsv_augmentation(img)
                 img = im_crop(img)
 
-            outimg = im_scale_norm_pad(img, outsize=192, down_reso=True, down_len=10)
+            outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
             imgseq.append(outimg)
 

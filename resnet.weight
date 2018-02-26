@@ -1,0 +1,163 @@
+  Load pretrained layer:  layer2.1.bn1.weight
+  Load pretrained layer:  layer2.1.bn2.weight
+  Load pretrained layer:  layer2.0.conv1.weight
+  Load pretrained layer:  layer2.1.conv2.weight
+  Load pretrained layer:  layer2.0.downsample.1.weight
+  Load pretrained layer:  layer3.0.bn2.bias
+  Load pretrained layer:  layer4.0.conv2.weight
+  Load pretrained layer:  layer1.1.bn2.running_var
+  Load pretrained layer:  layer4.1.conv2.weight
+  Load pretrained layer:  layer4.1.bn2.running_mean
+  Load pretrained layer:  conv1.weight
+  Load pretrained layer:  layer3.1.bn2.bias
+  Load pretrained layer:  layer3.0.bn2.running_mean
+  Load pretrained layer:  layer2.0.bn1.running_mean
+  Load pretrained layer:  layer4.0.bn2.running_var
+  Load pretrained layer:  layer2.0.bn2.running_mean
+  Load pretrained layer:  layer3.1.bn1.running_mean
+  Load pretrained layer:  layer2.0.downsample.1.running_var
+  Load pretrained layer:  layer3.0.downsample.1.running_var
+  Load pretrained layer:  layer1.1.bn2.bias
+  Load pretrained layer:  layer3.0.downsample.1.running_mean
+  Load pretrained layer:  layer4.1.bn2.weight
+  Load pretrained layer:  bn1.weight
+  Load pretrained layer:  layer2.0.downsample.1.bias
+  Load pretrained layer:  layer1.0.bn2.weight
+  Load pretrained layer:  layer3.0.downsample.0.weight
+  Load pretrained layer:  layer4.0.downsample.1.bias
+  Load pretrained layer:  layer3.0.bn1.running_mean
+  Load pretrained layer:  layer4.0.bn1.running_mean
+  Load pretrained layer:  layer4.0.bn2.running_mean
+  Load pretrained layer:  layer2.1.bn1.running_mean
+  Load pretrained layer:  layer1.1.bn2.weight
+  Load pretrained layer:  layer4.0.bn1.running_var
+  Load pretrained layer:  layer2.0.bn2.weight
+  Load pretrained layer:  layer1.0.bn1.weight
+  Load pretrained layer:  layer3.0.bn2.running_var
+  Load pretrained layer:  bn1.bias
+  Load pretrained layer:  layer1.0.bn2.bias
+  Load pretrained layer:  layer2.1.bn2.bias
+  Load pretrained layer:  layer4.0.downsample.1.running_mean
+  Load pretrained layer:  layer1.0.conv1.weight
+  Load pretrained layer:  layer2.0.bn1.running_var
+  Load pretrained layer:  layer3.1.bn1.weight
+  Load pretrained layer:  layer3.1.bn2.running_var
+  Load pretrained layer:  layer2.1.bn2.running_var
+  Load pretrained layer:  layer4.0.bn1.bias
+  Load pretrained layer:  layer1.1.bn1.weight
+  Load pretrained layer:  bn1.running_mean
+  Load pretrained layer:  layer4.0.downsample.1.weight
+  Load pretrained layer:  layer2.1.bn1.running_var
+  Load pretrained layer:  layer1.0.bn1.bias
+  Load pretrained layer:  layer2.0.downsample.1.running_mean
+  Load pretrained layer:  layer3.1.bn2.running_mean
+  Load pretrained layer:  layer1.1.bn1.bias
+  Load pretrained layer:  layer2.0.bn1.bias
+  Load pretrained layer:  layer3.0.bn1.running_var
+  Load pretrained layer:  layer4.0.downsample.0.weight
+  Load pretrained layer:  layer3.0.bn2.weight
+  Load pretrained layer:  layer3.0.downsample.1.weight
+  Load pretrained layer:  layer3.0.bn1.bias
+  Load pretrained layer:  layer4.1.bn1.weight
+  Load pretrained layer:  layer4.1.conv1.weight
+  Load pretrained layer:  layer2.0.bn2.bias
+  Load pretrained layer:  layer4.0.bn2.bias
+  Load pretrained layer:  layer1.1.conv2.weight
+  Load pretrained layer:  layer3.0.downsample.1.bias
+  Load pretrained layer:  layer2.0.bn1.weight
+  Load pretrained layer:  layer4.0.downsample.1.running_var
+  Load pretrained layer:  layer2.1.conv1.weight
+  Load pretrained layer:  layer1.1.bn1.running_mean
+  Load pretrained layer:  layer3.1.bn1.bias
+  Load pretrained layer:  layer4.1.bn1.running_mean
+  Load pretrained layer:  layer3.0.conv2.weight
+  Load pretrained layer:  layer2.1.bn2.running_mean
+  Load pretrained layer:  layer1.1.bn1.running_var
+  Load pretrained layer:  layer1.0.bn2.running_mean
+  Load pretrained layer:  layer1.0.bn2.running_var
+  Load pretrained layer:  layer3.1.conv1.weight
+  Load pretrained layer:  layer3.1.bn1.running_var
+  Load pretrained layer:  layer3.0.conv1.weight
+  Load pretrained layer:  layer4.1.bn2.bias
+  Load pretrained layer:  layer4.0.bn2.weight
+  Load pretrained layer:  layer4.0.conv1.weight
+  Load pretrained layer:  layer4.1.bn2.running_var
+  Load pretrained layer:  layer3.1.bn2.weight
+  Load pretrained layer:  bn1.running_var
+  Load pretrained layer:  layer1.0.conv2.weight
+  Load pretrained layer:  layer1.1.conv1.weight
+  Load pretrained layer:  layer4.0.bn1.weight
+  Load pretrained layer:  layer1.0.bn1.running_var
+  Load pretrained layer:  layer2.0.conv2.weight
+  Load pretrained layer:  layer1.0.bn1.running_mean
+  Load pretrained layer:  layer2.0.downsample.0.weight
+  Load pretrained layer:  layer4.1.bn1.bias
+  Load pretrained layer:  layer3.1.conv2.weight
+  Load pretrained layer:  layer4.1.bn1.running_var
+  Load pretrained layer:  layer3.0.bn1.weight
+  Load pretrained layer:  layer1.1.bn2.running_mean
+  Load pretrained layer:  layer2.0.bn2.running_var
+  Load pretrained layer:  layer2.1.bn1.bias
+
+[torch.Size([64, 3, 7, 7]), 
+torch.Size([64]), 
+torch.Size([64]), 
+torch.Size([64, 64, 3, 3]), 
+torch.Size([64]), 
+torch.Size([64]), 
+torch.Size([64, 64, 3, 3]), 
+torch.Size([64]), 
+torch.Size([64]), 
+torch.Size([64, 64, 3, 3]), 
+torch.Size([64]), 
+torch.Size([64]), 
+torch.Size([64, 64, 3, 3]), 
+torch.Size([64]), 
+torch.Size([64]), 
+torch.Size([128, 64, 3, 3]), 
+torch.Size([128]), 
+torch.Size([128]), 
+torch.Size([128, 128, 3, 3]), 
+torch.Size([128]), 
+torch.Size([128]), 
+torch.Size([128, 64, 1, 1]), 
+torch.Size([128]), 
+torch.Size([128]), 
+torch.Size([128, 128, 3, 3]), 
+torch.Size([128]), 
+torch.Size([128]), 
+torch.Size([128, 128, 3, 3]), 
+torch.Size([128]), 
+torch.Size([128]), 
+torch.Size([256, 128, 3, 3]), 
+torch.Size([256]), 
+torch.Size([256]), 
+torch.Size([256, 256, 3, 3]), 
+torch.Size([256]), 
+torch.Size([256]), 
+torch.Size([256, 128, 1, 1]), 
+torch.Size([256]), 
+torch.Size([256]), 
+torch.Size([256, 256, 3, 3]), 
+torch.Size([256]), 
+torch.Size([256]), 
+torch.Size([256, 256, 3, 3]), 
+torch.Size([256]), 
+torch.Size([256]), 
+torch.Size([512, 256, 3, 3]), 
+torch.Size([512]), 
+torch.Size([512]), 
+torch.Size([512, 512, 3, 3]), 
+torch.Size([512]), 
+torch.Size([512]), 
+torch.Size([512, 256, 1, 1]), 
+torch.Size([512]), 
+torch.Size([512]), 
+torch.Size([512, 512, 3, 3]), 
+torch.Size([512]), 
+torch.Size([512]), 
+torch.Size([512, 512, 3, 3]), 
+torch.Size([512]), 
+torch.Size([512]), 
+torch.Size([2, 512]), 
+torch.Size([2])]

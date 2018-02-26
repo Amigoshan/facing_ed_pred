@@ -12,7 +12,9 @@ import matplotlib.pyplot as plt
 
 class FacingDroneLabelDataset(Dataset):
 
-    def __init__(self, imgdir='/home/wenshan/datasets/droneData/label',imgsize = 192, data_aug = False):
+    def __init__(self, imgdir='/home/wenshan/datasets/droneData/label',
+                        imgsize = 192, data_aug = False,
+                        mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -27,6 +29,8 @@ class FacingDroneLabelDataset(Dataset):
                         'w':  [0., -1.],
                         'nw': [0.707, -0.707]}
         self.aug = data_aug
+        self.mean = mean
+        self.std = std
 
         imgind = 0
         for clsfolder in listdir(imgdir):
@@ -55,7 +59,7 @@ class FacingDroneLabelDataset(Dataset):
             img = im_crop(img)
 
 
-        outimg = im_scale_norm_pad(img, outsize=192, down_reso=True)
+        outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
         return {'img':outimg, 'label':label}
 

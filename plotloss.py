@@ -8,9 +8,9 @@ imgoutdir = 'resimg_facing'
 AvgNum = 100
 
 datadir = 'data_facing'
-exp_pref = '12_3_'
-LOGFILE = True
-plotnum = 300000
+exp_pref = '15_1_'
+LOGFILE = False
+plotnum = 30000
 
 if LOGFILE:
 
@@ -67,7 +67,7 @@ gpunlabelx, gpunlabely = groupPlot(range(len(unlabelloss)),unlabelloss,group=100
 ax2.plot(unlabelloss)
 ax2.plot(gpunlabelx, gpunlabely, color='y')
 ax2.grid()
-ax2.set_ylim(0,500)
+ax2.set_ylim(0,10)
 
 plt.savefig(join(imgoutdir, logname+'.png'))
 

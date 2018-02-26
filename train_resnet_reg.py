@@ -1,5 +1,7 @@
-# This file is modified from train_ed_semi_cls.py
-# Change the classification model to regression model
+# This file is modified from train_semi_reg_jointloss.py
+# Change the feature extractor to resnet18
+# change the normalization
+# 
 
 import cv2
 import torch
@@ -16,14 +18,14 @@ from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
-from StateEncoderDecoder import EncoderReg_norm as EncoderReg
+from ResnetRegNet import ResnetReg_norm
 
 
-exp_prefix = '12_6_'
+exp_prefix = '15_1_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
-preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
-predictModel = 'models_facing/'+exp_prefix+'ed_reg'
+# preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+predictModel = 'models_facing/'+exp_prefix+'resnet_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
 datasetdir = '/home/wenshan/datasets'
@@ -31,40 +33,40 @@ Lr_label = 0.0005
 batch = 32
 trainstep = 100000
 showiter = 50
-snapshot = 1000
+snapshot = 2000
 unlabel_batch = 32
-lamb = 0.0001
+lamb = 0.02
 # lamb2 = 0.03
 # alpha = 0.2
-# thresh = 0.01
-train_layer_num = 0
+thresh = 0.01
+train_layer_num = 32
 
-hiddens = [3,16,32,32,64,64,128,256] 
-kernels = [4,4,4,4,4,4,3]
-paddings = [1,1,1,1,1,1,0]
-strides = [2,2,2,2,2,2,1]
-
-encoderReg = EncoderReg(hiddens, kernels, strides, paddings, actfunc='leaky')
+encoderReg = ResnetReg_norm()
 # encode the input using pretrained model
-print 'load pretrained...'
-encoderReg=loadPretrain(encoderReg,preTrainModel)
+# print 'load pretrained...'
+# encoderReg=loadPretrain(encoderReg,preTrainModel)
 encoderReg.cuda()
 
 
 paramlist = list(encoderReg.parameters())
 criterion = nn.MSELoss()
+
+# import ipdb;ipdb.set_trace()
 # kl_criterion = nn.KLDivLoss()
 # regOptimizer = optim.SGD(predictNet.parameters(), lr = Lr, momentum=0.9)
 regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 
-imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), data_aug=True)
-valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
+imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), 
+                                    data_aug=True,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 imgdataset2 = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
                                  imgdir=join(datasetdir,'facing/facing_img_coco'), 
-                                 data_aug=True)
+                                 data_aug=True,
+                                 mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 # imgdataset = FacingLabelDataset()
 unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
-                                       batch = unlabel_batch, data_aug=True, extend=True)
+                                       batch = unlabel_batch, data_aug=True, extend=True,
+                                       mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
@@ -105,14 +107,16 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
         ind2 = random.randint(ind1+2, unlabel_batch-1) # big distance
         ind3 = random.randint(ind1+1, ind2-1) # small distance
 
-        target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
-        target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
-        diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
-        # diff_big = diff_big.sum()/2.0
-        diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        # target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
+        # target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
+        # diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = diff_big.sum()/2.0
+        # diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = (output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = diff_small.sum()/2.0
         # import ipdb; ipdb.set_trace()
-        # diff_small = diff_small.sum()/2.0
-        loss_unlabel = loss_unlabel + (diff_small-diff_big).clamp(0)
+        loss_unlabel = loss_unlabel + (diff_small+thresh-diff_big).clamp(0)
     # for ind1 in range(unlabel_batch-1):
     #     for ind2 in range(ind1+1, unlabel_batch):
     #         w = abs(ind1 - ind2)

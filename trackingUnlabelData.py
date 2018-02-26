@@ -13,7 +13,9 @@ import pandas as pd
 
 class TrackingUnlabelDataset(Dataset):
 
-    def __init__(self, imgdir='/datadrive/data/aayush/combined_data2/',imgsize = 192, batch = 32, data_aug=False):
+    def __init__(self, imgdir='/datadrive/data/aayush/combined_data2/',
+                        imgsize = 192, batch = 32, data_aug=False,
+                        mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -22,6 +24,8 @@ class TrackingUnlabelDataset(Dataset):
         self.class_type = ['person']  # can add 'person'
         self.batch = batch
         self.aug = data_aug
+        self.mean = mean
+        self.std = std
         self.episodeNum = []
 
 
@@ -121,7 +125,7 @@ class TrackingUnlabelDataset(Dataset):
                 img = im_hsv_augmentation(img)
                 img = im_crop(img)
 
-            outimg = im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=10)
+            outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
             imgseq.append(outimg)
 

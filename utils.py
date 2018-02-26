@@ -57,13 +57,14 @@ def getColor(x,y,maxx,maxy):
     a = 1
     return (r,g,b,a)
 
-def img_normalize(img):
+def img_normalize(img, mean=[0,0,0], std=[1,1,1]): # resnet: mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225]
     img = img[:,:,[2,1,0]] # bgr to rgb
     img = img.astype(np.float32)/255.0
+    img = (img-np.array(mean))/np.array(std)
     img = img.transpose(2,0,1)
     return img
 
-def img_denormalize(img):
+def img_denormalize(img): # used for visualization only
     # print img.shape
     img = img.transpose(1,2,0)
     img = img.clip(0,1) # network can output values out of range
@@ -138,7 +139,7 @@ def im_crop(image, maxscale=0.2, low_resol=False):
     endy = int(imgshape[0]-random.random()*maxscale*imgshape[0])
     return image[starty:endy,startx:endx,:]
 
-def im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=30):
+def im_scale_norm_pad(img, outsize=192, mean=[0,0,0], std=[1,1,1], down_reso=False, down_len=30):
     minlen = np.min(img.shape[0:2])
     down_len = random.randint(down_len,down_len*3)
     if down_reso and minlen>down_len:
@@ -147,7 +148,7 @@ def im_scale_norm_pad(img, outsize=192, down_reso=False, down_len=30):
 
     resize_scale = float(outsize)/np.max(img.shape)
     img = cv2.resize(img, (0,0), fx = resize_scale, fy = resize_scale)
-    img = img_normalize(img)
+    img = img_normalize(img, mean=mean, std=std)
     # print img.shape
     imgw = img.shape[2]
     imgh = img.shape[1]

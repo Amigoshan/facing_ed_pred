@@ -205,9 +205,9 @@ class EncoderReg_Pred(nn.Module):
         x_encode = x_encode.view(batchsize, -1)
         # regression the direction
         x = self.reg(x_encode)
-        y = x.abs() # normalize so |x| + |y| = 1
-        y = y.sum(dim=1) 
-        x = x/y.unsqueeze(1)
+        # y = x.abs() # normalize so |x| + |y| = 1
+        # y = y.sum(dim=1) 
+        # x = x/y.unsqueeze(1)
 
         # rnn predictor
         innum = batchsize/2 # use first half as input, last half as target
@@ -227,23 +227,73 @@ class EncoderReg_Pred(nn.Module):
         pred_out = torch.cat(tuple(pred_out), dim=0)
         return x, x_encode, pred_out
 
-# hiddens = [3,16,32,32,64,64,128,256] 
-# kernels = [4,4,4,4,4,4,3]
-# paddings = [1,1,1,1,1,1,0]
-# strides = [2,2,2,2,2,2,1]
+if __name__ == '__main__':
+    
 
-# from facingLabelData import FacingLabelDataset
-# from torch.utils.data import DataLoader
+    hiddens = [3,16,32,32,64,64,128,256] 
+    kernels = [4,4,4,4,4,4,3]
+    paddings = [1,1,1,1,1,1,0]
+    strides = [2,2,2,2,2,2,1]
 
-# stateEncoder = EncoderReg_Pred(hiddens, kernels, strides, paddings, actfunc='leaky')
-# print stateEncoder
-# imgdataset = FacingLabelDataset()
-# dataloader = DataLoader(imgdataset, batch_size=8, shuffle=True, num_workers=1)
-# for sample in dataloader:
-#     inputVar = Variable(sample['img'])
-#     print inputVar
-#     print inputVar.size()
-#     x, encode, pred = stateEncoder(inputVar)
-#     print encode.size(), x.size(), pred_out.size()
+    datasetdir='/home/wenshan/datasets'
+    unlabel_batch = 4
+    lr = 0.005
 
-#     print encode
+    from facingDroneUnlabelData import FacingDroneUnlabelDataset
+    from torch.utils.data import DataLoader
+    from os.path import join
+    import torch.nn as nn
+    import torch.optim as optim
+
+    stateEncoder = EncoderReg_Pred(hiddens, kernels, strides, paddings, actfunc='leaky',rnnHidNum=128)
+    print stateEncoder
+    paramlist = list(stateEncoder.parameters())
+    # for par in paramlist:
+    #     print par.size()
+    print len(paramlist)
+    stateEncoder.cuda()
+    imgdataset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
+                                       batch = unlabel_batch, data_aug=True, extend=False)    
+    dataloader = DataLoader(imgdataset, batch_size=1, shuffle=True, num_workers=1)
+
+    criterion = nn.MSELoss()
+    regOptimizer = optim.SGD(stateEncoder.parameters(), lr = lr, momentum=0.9)
+    # regOptimizer = optim.Adam(stateEncoder.parameters(), lr = lr)
+
+    lossplot = []
+    encodesumplot = []
+    ind = 0
+    for sample in dataloader:
+        ind += 1
+        inputVar = Variable(sample.squeeze()).cuda()
+        # print inputVar.size()
+        x, encode, pred = stateEncoder(inputVar)
+        # print encode.size(), x.size(), pred.size()
+
+        # print encode
+
+        pred_target = encode[unlabel_batch/2:,:].detach()
+
+        loss_pred = criterion(pred, pred_target)
+
+        # # loss = loss_label + loss_pred * lamb #+ normloss * lamb2
+
+        # # zero the parameter gradients
+        regOptimizer.zero_grad()
+        loss_pred.backward()
+        # # loss.backward()
+        regOptimizer.step()
+
+        lossplot.append(loss_pred.data[0])
+        encodesumplot.append(encode.mean().data[0])
+        print ind,loss_pred.data[0], encode.mean().data[0]
+
+        if ind>=1000:
+            break
+
+
+    import matplotlib.pyplot as plt
+    plt.plot(lossplot)
+    plt.plot(encodesumplot)
+    plt.grid()
+    plt.show()

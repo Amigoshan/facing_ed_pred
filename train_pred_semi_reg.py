@@ -19,20 +19,22 @@ from facingLabelData import FacingLabelDataset
 from StateEncoderDecoder import EncoderReg_Pred
 
 
-exp_prefix = '11_1_'
-preTrainModel = 'models_facing/8_13_ed_reg_46000.pkl'
+exp_prefix = '20_2_'
+# preTrainModel = 'models_facing/8_13_ed_reg_46000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 # preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
+# preTrainModel = 'models_facing/13_1_ed_reg_100000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'pred_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
-Lr_label = 0.00001
-lamb = 1.0
-unlabel_batch = 4
+datasetdir = '/home/wenshan/datasets'
+lr = 0.01
+lamb = 5.0
+unlabel_batch = 32
 batch = 32
 trainstep = 10000
-showiter = 10
-snapshot = 1000
+showiter = 50
+snapshot = 2000
 train_layer_num = 0
 
 hiddens = [3,16,32,32,64,64,128,256] 
@@ -40,23 +42,29 @@ kernels = [4,4,4,4,4,4,3]
 paddings = [1,1,1,1,1,1,0]
 strides = [2,2,2,2,2,2,1]
 
-encoderReg = EncoderReg_Pred(hiddens, kernels, strides, paddings, actfunc='leaky', rnnHidNum=512)
+encoderReg = EncoderReg_Pred(hiddens, kernels, strides, paddings, actfunc='leaky', rnnHidNum=128)
 # encode the input using pretrained model
-print 'load pretrained...'
-encoderReg=loadPretrain(encoderReg,preTrainModel)
+# print 'load pretrained...'
+# encoderReg=loadPretrain(encoderReg,preTrainModel)
 encoderReg.cuda()
 
 
 paramlist = list(encoderReg.parameters())
 criterion = nn.MSELoss()
-# regOptimizer = optim.SGD(predictNet.parameters(), lr = Lr, momentum=0.9)
-regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
+regOptimizer = optim.SGD(paramlist[-train_layer_num:], lr = lr, momentum=0.9)
+# regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = lr)
 
-imgdataset = FacingDroneLabelDataset(data_aug=True)
-valset = FacingDroneLabelDataset(imgdir='/home/wenshan/datasets/droneData/val')
-imgdataset2 = FacingLabelDataset(data_aug=True)
+imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), data_aug=True)
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
+imgdataset2 = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
+                                 imgdir=join(datasetdir,'facing/facing_img_coco'), 
+                                 data_aug=True)
+# imgdataset3 = TrackingLabelDataset(data_aug=True)
 # imgdataset = FacingLabelDataset()
-unlabelset = FacingDroneUnlabelDataset(batch = unlabel_batch, data_aug=True, extend=True)
+unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
+                                       batch = unlabel_batch, data_aug=True, extend=True)
+# unlabelset2 = TrackingUnlabelDataset(batch = unlabel_batch, data_aug=True)
+
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
@@ -66,20 +74,21 @@ unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
 def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criterion, lamb):
 
-    loss_label = Variable(torch.Tensor([0])).cuda()
-    loss = Variable(torch.Tensor([0])).cuda()
-    # # labeled data
-    # inputImgs = sample['img']
-    # labels = sample['label']
-    # inputState = Variable(inputImgs,requires_grad=True)
-    # targetreg = Variable(labels,requires_grad=False)
+    # loss_label = Variable(torch.Tensor([0])).cuda()
+    # loss = Variable(torch.Tensor([0])).cuda()
+    # loss_pred = Variable(torch.Tensor([0])).cuda()
+    # labeled data
+    inputImgs = sample['img']
+    labels = sample['label']
+    inputState = Variable(inputImgs,requires_grad=True)
+    targetreg = Variable(labels,requires_grad=False)
 
-    # inputState = inputState.cuda()
-    # targetreg = targetreg.cuda()
+    inputState = inputState.cuda()
+    targetreg = targetreg.cuda()
 
-    # # forward + backward + optimize
-    # output, _, _ = encoderReg(inputState)
-    # loss_label = criterion(output, targetreg)
+    # forward + backward + optimize
+    output, _, _ = encoderReg(inputState)
+    loss_label = criterion(output, targetreg)
 
     # unlabeled data
     imgseq = unlabel_sample.squeeze()
@@ -90,45 +99,35 @@ def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criter
 
     output_unlabel, encode, pred = encoderReg(inputState_unlabel)
     pred_target = encode[unlabel_batch/2:,:].detach()
+    # print np.mean(encode.data.cpu().numpy()),np.std(encode.data.cpu().numpy())
 
     loss_pred = criterion(pred, pred_target)
 
-    # loss = loss_label + loss_pred * lamb #+ normloss * lamb2
+    loss = loss_label + loss_pred * lamb #+ normloss * lamb2
 
     # zero the parameter gradients
     regOptimizer.zero_grad()
-    loss_pred.backward()
-    # loss.backward()
+    # loss_label.backward()
+    # loss_pred.backward()
+    loss.backward()
     regOptimizer.step()
 
     return loss_label.data[0], loss_pred.data[0], loss.data[0]#, normloss.data[0]
 
+def test_label(val_sample, encoderReg, criterion, batchnum = 1):
 
-def test_label(dataloader, encoderReg, criterion, batchnum = 1):
-    # test on valset/trainset
-    # return loss and accuracy
-    ind = 0
-    mean_loss = 0.0
-    # mean_acc = 0.0
-    # lossplot = []
-    for val_sample in dataloader:
-        ind += 1
-        inputImgs = val_sample['img']
-        labels = val_sample['label']
-        inputState = Variable(inputImgs,requires_grad=False)
-        targetreg = Variable(labels,requires_grad=False)
-        inputState = inputState.cuda()
-        targetreg = targetreg.cuda()
+    inputImgs = val_sample['img']
+    labels = val_sample['label']
+    inputState = Variable(inputImgs,requires_grad=False)
+    targetreg = Variable(labels,requires_grad=False)
+    inputState = inputState.cuda()
+    targetreg = targetreg.cuda()
 
-        output, _, _ = encoderReg(inputState)
-        loss = criterion(output, targetreg)
-        val_loss = loss.data[0]
-        mean_loss += val_loss
+    output, _, _ = encoderReg(inputState)
+    loss = criterion(output, targetreg)
+    val_loss = loss.data[0]
 
-        if ind == batchnum:
-            break
-
-    return mean_loss/batchnum #, mean_acc/batchnum
+    return val_loss #, mean_acc/batchnum
 
 
 lossplot = []
@@ -141,6 +140,8 @@ val_loss = 0.0
 unlabel_loss = 0.0
 norm_loss = 0.0
 ind = 0
+add_loss = 0.0
+label_loss = 0.0
 
 dataiter = iter(dataloader)
 dataiter2 = iter(dataloader2)
@@ -174,8 +175,11 @@ while True:
     labellossplot.append(label_loss)
     unlabellossplot.append(unlabel_loss)
 
-    # if ind % showiter == 0:    # print every 20 mini-batches
-    val_loss = test_label(valloader, encoderReg, criterion, batchnum = 1)
+    if (ind-1) % showiter == 0:    # print every 20 mini-batches
+        # val_loss = test_label(valloader, encoderReg, criterion, batchnum = 1)
+        for val_sample in valloader:
+            # print val_sample['img'].size()
+            val_loss = test_label(val_sample, encoderReg, criterion)
     # train_loss, train_acc = test_label(dataloader, encoderReg, criterion, batchnum = 3)
     vallossplot.append(val_loss)
 
@@ -187,7 +191,7 @@ while True:
         np.save(join(datadir,exp_prefix+'lossplot.npy'), lossplot)
         np.save(join(datadir,exp_prefix+'vallossplot.npy'), vallossplot)
         np.save(join(datadir,exp_prefix+'unlabellossplot.npy'), unlabellossplot)
-
+        np.save(join(datadir,exp_prefix+'labellossplot.npy'), labellossplot)
     if ind==trainstep:
         break
     

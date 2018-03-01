@@ -21,7 +21,7 @@ from facingLabelData import FacingLabelDataset
 from ResnetRegNet import ResnetReg_norm
 
 
-exp_prefix = '15_1_'
+exp_prefix = '15_2_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 # preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
@@ -31,15 +31,15 @@ datadir = 'data_facing'
 datasetdir = '/home/wenshan/datasets'
 Lr_label = 0.0005 
 batch = 32
-trainstep = 100000
+trainstep = 50000
 showiter = 50
 snapshot = 2000
-unlabel_batch = 32
+unlabel_batch = 17
 lamb = 0.02
 # lamb2 = 0.03
 # alpha = 0.2
 thresh = 0.01
-train_layer_num = 32
+train_layer_num = 17
 
 encoderReg = ResnetReg_norm()
 # encode the input using pretrained model

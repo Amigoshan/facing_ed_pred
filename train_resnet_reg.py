@@ -18,17 +18,19 @@ from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
+from trackingLabelData import TrackingLabelDataset
+from trackingUnlabelData import TrackingUnlabelDataset
 from ResnetRegNet import ResnetReg_norm
 
 
-exp_prefix = '15_2_'
+exp_prefix = '15_5_'
 # preTrainModel = 'models_facing/8_12_2_ed_reg_3000.pkl'
 # preTrainModel = 'models_facing/3_5_ed_cls_10000.pkl'
 # preTrainModel = 'models_facing/1_2_encoder_decoder_facing_leaky_50000.pkl'
 predictModel = 'models_facing/'+exp_prefix+'resnet_reg'
 imgoutdir = 'resimg_facing'
 datadir = 'data_facing'
-datasetdir = '/home/wenshan/datasets'
+datasetdir = '/datasets'
 Lr_label = 0.0005 
 batch = 32
 trainstep = 50000
@@ -39,7 +41,9 @@ lamb = 0.02
 # lamb2 = 0.03
 # alpha = 0.2
 thresh = 0.01
-train_layer_num = 17
+train_layer_num = 11
+mean=[0.485, 0.456, 0.406]
+std=[0.229, 0.224, 0.225]
 
 encoderReg = ResnetReg_norm()
 # encode the input using pretrained model
@@ -57,20 +61,22 @@ criterion = nn.MSELoss()
 regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 
 imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), 
-                                    data_aug=True,mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
-valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                    data_aug=True,mean=mean,std=std)
+valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=mean,std=std)
 imgdataset2 = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
                                  imgdir=join(datasetdir,'facing/facing_img_coco'), 
                                  data_aug=True,
-                                 mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                 mean=mean,std=std)
+imgdataset3 = TrackingLabelDataset(data_aug=True,mean=mean,std=std)
 # imgdataset = FacingLabelDataset()
 unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
                                        batch = unlabel_batch, data_aug=True, extend=True,
-                                       mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])
+                                       mean=mean,std=std)
 
 valnum = 100
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
 dataloader2 = DataLoader(imgdataset2, batch_size=batch, shuffle=True, num_workers=2)
+dataloader3 = DataLoader(imgdataset3, batch_size=batch, shuffle=True, num_workers=2)
 valloader = DataLoader(valset, batch_size=valnum, shuffle=False, num_workers=2)
 unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
 
@@ -185,18 +191,25 @@ while True:
 
     ind += 1
 
-    if ind%2==0:
+    if ind%3==0:
         try:
             sample = dataiter.next()
         except:
             dataiter = iter(dataloader)
             sample = dataiter.next()
-    else:
+    elif ind%3==1:
         try:
             sample = dataiter2.next()
         except:
             dataiter2 = iter(dataloader2)
             sample = dataiter2.next()
+       
+    else:
+        try:
+            sample = dataiter3.next()
+        except:
+            dataiter3 = iter(dataloader3)
+            sample = dataiter3.next()
        
 
     try:

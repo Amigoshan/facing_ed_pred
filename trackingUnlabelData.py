@@ -101,7 +101,7 @@ class TrackingUnlabelDataset(Dataset):
             total_seq_num += len(sequ) - batch + 1
             self.episodeNum.append(total_seq_num)
         self.N = total_seq_num
-        # print total_seq_num
+        print np.sum(np.array([len(imglist) for imglist in self.imgnamelist]))
         # print self.episodeNum
 
     def __len__(self):

@@ -16,7 +16,7 @@ np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 preTrainModel = 'models_facing/15_1_resnet_reg_24000.pkl'
 batch = 8
 unlabel_batch = 32
-datasetdir = '/home/wenshan/datasets'
+datasetdir = '/datasets'
 mean = [0.485, 0.456, 0.406]
 std = [0.229, 0.224, 0.225]
 

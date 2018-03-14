@@ -9,11 +9,12 @@ from utils import loadPretrain2, loadPretrain, seq_show_with_arrow
 from facingDroneLabelData import FacingDroneLabelDataset
 from facingDroneUnlabelData import FacingDroneUnlabelDataset
 from facingLabelData import FacingLabelDataset
-from StateEncoderDecoder import EncoderReg_norm as EncoderReg
+from StateEncoderDecoder import EncoderReg # EncoderReg_norm as
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/13_4_ed_reg_200000.pkl'
+# preTrainModel = 'models_facing/track_sup_seed_drone_both_ed_reg_200000.pkl'
+preTrainModel = '/datadrive/aayush/models_facing/track_sup_seed_drone_both_run3_ed_reg_200000.pkl'
 batch = 8
 unlabel_batch = 32
 datasetdir = '/datasets'

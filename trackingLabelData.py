@@ -22,6 +22,8 @@ class TrackingLabelDataset(Dataset):
         self.std = std
         self.csv_file = pd.read_csv(csv_file)
 
+        print len(self.csv_file)
+
     def __len__(self):
         return len(self.csv_file)
 

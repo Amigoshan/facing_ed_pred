@@ -83,6 +83,7 @@ class FacingDroneUnlabelDataset(Dataset):
 
         sequencenum = len(self.imgnamelist)
         print 'Read', sequencenum, 'sequecnes...'
+        print np.sum(np.array([len(imglist) for imglist in self.imgnamelist]))
 
         total_seq_num = 0
         for sequ in self.imgnamelist:

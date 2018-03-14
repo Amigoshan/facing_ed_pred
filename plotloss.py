@@ -3,14 +3,14 @@ import numpy as np
 from utils import groupPlot
 from os.path import join
 
-logname = '12_7_loss'
+logname = '8_1_loss'
 imgoutdir = 'resimg_facing'
 AvgNum = 100
+LOGFILE = False
 
 datadir = 'data_facing'
-exp_pref = '15_1_'
-LOGFILE = False
-plotnum = 30000
+exp_pref = '10_11_'
+plotnum = -1
 
 if LOGFILE:
 
@@ -21,10 +21,10 @@ if LOGFILE:
 	valloss=[]
 	unlabelloss=[]
 	for line in lines:
-		ind=line.find('loss:')
+		ind=line.find('label-loss:')
 		# print ind
 		if ind>0: 
-			line = line[ind+5:].strip()
+			line = line[ind+11:].strip()
 			loss = line.split(',')[0]
 			trainloss.append(float(loss))
 		ind=line.find('val-loss:')
@@ -49,26 +49,42 @@ else:
 	valloss = np.load(join(datadir,exp_pref+'vallossplot.npy'))
 	unlabelloss = np.load(join(datadir,exp_pref+'unlabellossplot.npy'))
 
+if np.sum(valloss[0:9])==0:
+			valloss[0:9]=valloss[10:19]
+
+print valloss[0:100]
+
 trainloss = np.array(trainloss[0:plotnum])
 valloss = np.array(valloss[0:plotnum])
 unlabelloss = np.array(unlabelloss[0:plotnum])
 
-print 'train: %.5f, val: %.5f, unlabel: %.5f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
-print '%.2f, %.2f, %.2f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
+# print 'train: %.5f, val: %.5f, unlabel: %.5f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
+# print '%.2f, %.2f, %.2f' % (np.mean(trainloss[-AvgNum:]), np.mean(valloss[-AvgNum:]), np.mean(unlabelloss[-AvgNum:]))
 
 ax1 = plt.subplot(121)
-ax1.plot(trainloss)
-ax1.plot(valloss)
+ax1.plot(trainloss,label='training loss')
+ax1.plot(valloss,label='validation loss')
+ax1.legend()
 ax1.grid()
 ax1.set_ylim(0,1)
+gpunlabelx, gpunlabely = groupPlot(range(len(trainloss)),trainloss,group=1000)
+ax1.plot(gpunlabelx, gpunlabely,'y')
+gpunlabelx, gpunlabely = groupPlot(range(len(valloss)),valloss,group=1000)
+ax1.plot(gpunlabelx, gpunlabely,'y')
+
 
 ax2 = plt.subplot(122)
-gpunlabelx, gpunlabely = groupPlot(range(len(unlabelloss)),unlabelloss,group=100)
-ax2.plot(unlabelloss)
-ax2.plot(gpunlabelx, gpunlabely, color='y')
+gpunlabelx, gpunlabely = groupPlot(range(len(unlabelloss)),unlabelloss,group=1000)
+ax2.plot(unlabelloss,label='continuity loss')
+ax2.plot(gpunlabelx, gpunlabely, color='y', label='average')
+ax2.legend()
 ax2.grid()
 ax2.set_ylim(0,10)
 
-plt.savefig(join(imgoutdir, logname+'.png'))
+if LOGFILE:
+	sn = logname
+else:
+	sn = exp_pref
+plt.savefig(join(imgoutdir, sn+'.png'))
 
 plt.show()

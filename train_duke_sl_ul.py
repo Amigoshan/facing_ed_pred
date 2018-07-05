@@ -18,7 +18,7 @@ import random
 
 from utils import loadPretrain2, loadPretrain, groupPlot
 from facingDroneLabelData import FacingDroneLabelDataset
-# from facingDroneUnlabelData import FacingDroneUnlabelDataset
+from facingDroneUnlabelData import FacingDroneUnlabelDataset
 # from facingLabelData import FacingLabelDataset
 from trackingLabelData import TrackingLabelDataset
 # from trackingUnlabelData import TrackingUnlabelDataset
@@ -38,6 +38,11 @@ batch = 64
 trainstep = 40000
 showiter = 50
 snapshot = 5000
+train_layer_num = 0
+
+unlabel_batch = 24 #32
+lamb = 0.0
+thresh = 0.01
 train_layer_num = 0
 
 hiddens = [3,16,32,32,64,64,128,256] 
@@ -61,10 +66,63 @@ regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 valset1 = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'))
 valset2 = TrackingLabelDataset(filename='/datadrive/person/DukeMTMC/test_heading_gt.txt')
 imgdataset = TrackingLabelDataset(filename='/datadrive/person/DukeMTMC/trainval_duke_10.txt', data_aug=True)
+unlabelset = FacingDroneUnlabelDataset(imgdir='/datadrive/person/DukeMTMC/heading',batch = unlabel_batch, data_aug=True, include_all=True)
 valnum = 50
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
 valloader1 = DataLoader(valset1, batch_size=valnum, shuffle=True, num_workers=2)
 valloader2 = DataLoader(valset2, batch_size=valnum, shuffle=True, num_workers=2)
+unlabelloader = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=2)
+
+def train_label_unlabel(encoderReg, sample, unlabel_sample, regOptimizer, criterion, lamb):
+
+    # labeled data
+    inputImgs = sample['img']
+    labels = sample['label']
+    inputState = Variable(inputImgs,requires_grad=True)
+    targetreg = Variable(labels,requires_grad=False)
+
+    inputState = inputState.cuda()
+    targetreg = targetreg.cuda()
+
+    # forward + backward + optimize
+    output, encode = encoderReg(inputState)
+    loss_label = criterion(output, targetreg)
+
+    # unlabeled data
+    imgseq = unlabel_sample.squeeze()
+    inputState_unlabel = Variable(imgseq,requires_grad=True).cuda()
+    inputState_unlabel = inputState_unlabel.cuda()
+
+    output_unlabel, x_encode = encoderReg(inputState_unlabel)
+
+    loss_unlabel = Variable(torch.Tensor([0])).cuda()
+    for ind1 in range(unlabel_batch-5): # try to make every sample contribute
+        # randomly pick two other samples
+        ind2 = random.randint(ind1+2, unlabel_batch-1) # big distance
+        ind3 = random.randint(ind1+1, ind2-1) # small distance
+
+        # target1 = Variable(x_encode[ind2,:].data, requires_grad=False).cuda()
+        # target2 = Variable(x_encode[ind3,:].data, requires_grad=False).cuda()
+        # diff_big = criterion(x_encode[ind1,:], target1) #(output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = (output_unlabel[ind1]-output_unlabel[ind2])*(output_unlabel[ind1]-output_unlabel[ind2])
+        diff_big = diff_big.sum()/2.0
+        # diff_small = criterion(x_encode[ind1,:], target2) #(output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = (output_unlabel[ind1]-output_unlabel[ind3])*(output_unlabel[ind1]-output_unlabel[ind3])
+        diff_small = diff_small.sum()/2.0
+        # import ipdb; ipdb.set_trace()
+        loss_unlabel = loss_unlabel + (diff_small+thresh-diff_big).clamp(0)
+
+    # loss = encode.sum()
+    loss = loss_label + loss_unlabel * lamb #+ normloss * lamb2
+
+    # zero the parameter gradients
+    regOptimizer.zero_grad()
+    # loss_label.backward()
+    loss.backward()
+    regOptimizer.step()
+
+    return loss_label.data[0], loss_unlabel.data[0], loss.data[0]#, normloss.data[0]
+
 
 def train_label(net, sample, regOptimizer, criterion):
 
@@ -111,6 +169,7 @@ def test_label(val_sample, net, criterion):
 labellossplot = []
 vallossplot1 = []
 vallossplot2 = []
+unlabellossplot = []
 # running_acc = 0.0
 val_loss1 = 0.0
 val_loss2 = 0.0
@@ -119,6 +178,7 @@ ind = 0
 dataiter = iter(dataloader)
 valiter1 = iter(valloader1)
 valiter2 = iter(valloader2)
+unlabeliter = iter(unlabelloader)
 while True:
 
     ind += 1
@@ -129,9 +189,17 @@ while True:
         dataiter = iter(dataloader)
         sample = dataiter.next()
 
+    try:
+        unlabel_sample = unlabeliter.next()
+    except:
+        unlabeliter = iter(unlabelloder)
+        unlabel_sample = unlabeliter.next()
 
-    label_loss = train_label(net, sample, regOptimizer, criterion)
+
+    # label_loss = train_label(net, sample, regOptimizer, criterion)
+    label_loss, unlabel_loss, add_loss = train_label_unlabel(net, sample, unlabel_sample, regOptimizer, criterion, lamb)
     labellossplot.append(label_loss)
+    unlabellossplot.append(unlabel_loss)
 
     if ind % showiter == 0:    # print every 20 mini-batches
         try:
@@ -159,7 +227,8 @@ while True:
         np.save(join(datadir,exp_prefix+'lossplot.npy'), labellossplot)
         np.save(join(datadir,exp_prefix+'vallossplot1.npy'), vallossplot1)
         np.save(join(datadir,exp_prefix+'vallossplot2.npy'), vallossplot2)
-
+        np.save(join(datadir,exp_prefix+'unlabellossplot.npy'), unlabellossplot)
+        
     if ind==trainstep:
         break
     

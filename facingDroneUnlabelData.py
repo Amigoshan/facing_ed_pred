@@ -17,7 +17,8 @@ class FacingDroneUnlabelDataset(Dataset):
     def __init__(self, imgdir='/datasets/dirimg/',
                         imgsize = 192, batch = 32, 
                         data_aug=False, extend=False,
-                        mean=[0,0,0],std=[1,1,1]):
+                        mean=[0,0,0],std=[1,1,1], 
+                        include_all=False):
 
         self.imgsize = imgsize
         self.imgnamelist = []
@@ -33,6 +34,9 @@ class FacingDroneUnlabelDataset(Dataset):
         if extend:
             for k in range(101,1585):
                 self.folderlist.append(str(k))
+
+        if include_all: # include all the folders in one directory -- for duke
+            self.folderlist = listdir(imgdir)
 
         for f_ind, foldername in enumerate(self.folderlist):
 

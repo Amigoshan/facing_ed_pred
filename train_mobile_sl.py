@@ -1,5 +1,5 @@
 # This file is modified from train_semi_reg_joinloss.py
-# Change the mobilenet
+# Change to the mobilenet
 # Supervised baseline
 
 # July 2018: train on DukeMTMC
@@ -56,7 +56,7 @@ regOptimizer = optim.Adam(paramlist[-train_layer_num:], lr = Lr_label)
 valset1 = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),imgsize = 112,mean=mean,std=std)
 valset2 = TrackingLabelDataset(filename='/datadrive/person/DukeMTMC/test_heading_gt.txt',imgsize = 112,mean=mean,std=std)
 imgdataset = TrackingLabelDataset(filename='/datadrive/person/DukeMTMC/trainval_heading_gt.txt',imgsize = 112, data_aug=True,mean=mean,std=std)
-valnum = 500
+valnum = 50
 dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=2)
 valloader1 = DataLoader(valset1, batch_size=valnum, shuffle=True, num_workers=2)
 valloader2 = DataLoader(valset2, batch_size=valnum, shuffle=True, num_workers=2)
@@ -168,7 +168,7 @@ labellossplot = labellossplot.mean(axis=1)
 ax1.plot(labellossplot)
 
 vallossplot1 = np.array(vallossplot1)
-ax1.plot(vallossplot1)
+ax1.plot(range(showiter,trainstep+1,showiter),vallossplot1)
 ax1.grid()
 
 ax2 = plt.subplot(122)
@@ -178,7 +178,7 @@ labellossplot = labellossplot.mean(axis=1)
 ax2.plot(labellossplot)
 
 vallossplot2 = np.array(vallossplot2)
-ax2.plot(vallossplot2)
+ax2.plot(range(showiter,trainstep+1,showiter),vallossplot2)
 ax2.grid()
 
 plt.savefig(join(imgoutdir, predictModel.split('/')[-1]+'.png'))

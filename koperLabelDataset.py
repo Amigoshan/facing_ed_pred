@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from os.path import isfile, join, isdir, split
+from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
@@ -10,9 +10,10 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
-class TrackingLabelDataset(Dataset):
+class KoperLabelDataset(Dataset):
 
-    def __init__(self, filename='/datadrive/data/aayush/combined_data2/train/annotations/person_annotations.csv',
+    def __init__(self, datafile='/datadrive/Ko-PER/koperdata',
+                        imgdir='/datadrive/Ko-PER',
                         imgsize = 192, data_aug = False,
                         mean=[0,0,0],std=[1,1,1]):
 
@@ -20,42 +21,45 @@ class TrackingLabelDataset(Dataset):
         self.aug = data_aug
         self.mean = mean
         self.std = std
-        self.filename = filename
 
-        self.items = []
-        if filename[-3:]=='csv':
-            self.items = pd.read_csv(filename)
-        else: # text file used by DukeMTMC dataset
-            imgdir = split(filename)[0]
-            imgdir = join(imgdir,'heading') # a subdirectory containing the images
-            with open(filename,'r') as f:
-                lines = f.readlines()
-            for line in lines:
-                [img_name, angle] = line.strip().split(' ')
-                self.items.append({'path':join(imgdir,img_name), 'direction_angle':angle})
+        with open(datafile, 'r') as f:
+            lines = f.readlines()
 
-        print 'Read images',len(self.items)
+        self.datalist = []
+        lineInd = 0
+        while lineInd < len(lines):
+            line = lines[lineInd].strip()
+            lineInd += 1
+            if line.split('.')[-1] == 'bmp':
+                imgfile = line
+                while True:
+                    line = lines[lineInd].strip()
+                    lineInd += 1
+                    if line=='':
+                        break
+                    linesplit = line.split(' ')
+                    bbox = [int(linesplit[0]),int(linesplit[1]),int(linesplit[2]),int(linesplit[3])]
+                    angle = float(linesplit[4])
+                    self.datalist.append({'img':join(imgdir, imgfile),'bbox':bbox, 'angle':angle})
+
+
+        print len(self.datalist)
 
     def __len__(self):
-        return len(self.items)
+        return len(self.datalist)
 
     def __getitem__(self, idx):
-        if self.filename[-3:]=='csv':
-            point_info = self.items.iloc[idx]
-        else:
-            point_info = self.items[idx]
-        #print(point_info)
-        img_name = point_info['path']
-        direction_angle = point_info['direction_angle']
-
+        img_name = self.datalist[idx]['img']
+        bbox = direction_angle = self.datalist[idx]['bbox']
+        direction_angle = self.datalist[idx]['angle']
+        direction_angle = -direction_angle
+        # print direction_angle
         direction_angle_cos = np.cos(float(direction_angle))
         direction_angle_sin = np.sin(float(direction_angle))
         label = np.array([direction_angle_sin, direction_angle_cos], dtype=np.float32)
         img = cv2.imread(img_name)
+        img = img[bbox[1]:bbox[3], bbox[0]:bbox[2]]
 
-        if img is None:
-            print 'error image:', img_name
-            return
         if self.aug:
             img = im_hsv_augmentation(img)
             img = im_crop(img)
@@ -67,12 +71,11 @@ class TrackingLabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    # trackingLabelDataset = TrackingLabelDataset(filename='/datadrive/data/aayush/combined_data2/train/annotations/car_annotations.csv')
-    trackingLabelDataset = TrackingLabelDataset(filename='/datadrive/person/DukeMTMC/heading_gt.txt', data_aug=True)
+    trackingLabelDataset = KoperLabelDataset(data_aug = True)
     print len(trackingLabelDataset)
-    for k in range(1000):
-        img = trackingLabelDataset[k]['img']
-        label = trackingLabelDataset[k]['label']
+    for k in range(100):
+        img = trackingLabelDataset[k*100]['img']
+        label = trackingLabelDataset[k*100]['label']
         print img.dtype, label
         print np.max(img), np.min(img), np.mean(img)
         print img.shape
@@ -85,7 +88,7 @@ if __name__=='__main__':
 
     dataiter = iter(dataloader)
 
-    # import ipdb;ipdb.set_trace()
+    # # import ipdb;ipdb.set_trace()
 
     for sample in dataloader:
       print sample['label'], sample['img'].size()

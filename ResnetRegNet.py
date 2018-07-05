@@ -97,6 +97,21 @@ class ResNet(nn.Module):
 
         return x
 
+class ResnetReg(nn.Module):
+
+    def __init__(self,modelname='models_facing/resnet18.pth'):
+        super(ResnetReg,self).__init__()
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2])
+        if modelname is not None:
+            loadPretrain(self.encoder, modelname)
+        self.reg = nn.Linear(512, 2)
+        self.reg.weight.data.normal_(0, 0.01)
+        self.reg.bias.data.zero_()
+
+    def forward(self,x):
+        x_encode = self.encoder(x)
+        x = self.reg(x_encode.view(x_encode.size()[0], -1))
+        return x, x_encode
 
 class ResnetReg_norm(nn.Module):
 
@@ -131,7 +146,7 @@ if __name__ == '__main__':
 
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                      std=[0.229, 0.224, 0.225])
-    datasetdir = '/home/wenshan/datasets'
+    datasetdir = '/datadrive/datasets'
     imgdataset = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
                                  imgdir=join(datasetdir,'facing/facing_img_coco'), 
                                  imgsize = 128,

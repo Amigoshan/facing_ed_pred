@@ -5,7 +5,7 @@ from os.path import isfile, join, isdir
 from os import listdir
 import xml.etree.ElementTree
 from torch.utils.data import Dataset, DataLoader
-from utils import im_scale_norm_pad, img_denormalize, seq_show, im_crop, im_hsv_augmentation
+from utils import im_scale_norm_pad, img_denormalize, seq_show, im_crop, im_hsv_augmentation, put_arrow
 
 import matplotlib.pyplot as plt
 
@@ -40,7 +40,7 @@ class FacingDroneLabelDataset(Dataset):
             clsfolderpath = join(imgdir, clsfolder)
 
             for imgname in listdir(clsfolderpath):
-                if imgname[-3:] == 'jpg':
+                if imgname[-3:] == 'jpg' or imgname[-3:] == 'png':
                     self.imgnamelist.append(join(clsfolderpath, imgname))
                     self.labellist.append(clsval)
 
@@ -66,20 +66,26 @@ class FacingDroneLabelDataset(Dataset):
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingDroneLabelDataset = FacingDroneLabelDataset()
-    for k in range(1):
-        img = facingDroneLabelDataset[k*10]['img']
-        print img.dtype, facingDroneLabelDataset[k*10]['label']
-        print np.max(img), np.min(img), np.mean(img)
-        print img.shape
-        cv2.imshow('img',img_denormalize(img))
+    import ipdb;ipdb.set_trace()
+    # facingDroneLabelDataset = FacingDroneLabelDataset()
+    # facingDroneLabelDataset = FacingDroneLabelDataset(imgdir='/datadrive/TITS2016WangOnRoadVehicle/labeled', data_aug=True)
+    facingDroneLabelDataset = FacingDroneLabelDataset(imgdir='/datadrive/3DPES/facing_labeled', data_aug=True)
+    for k in range(100):
+        img = facingDroneLabelDataset[k*100]['img']
+        label = facingDroneLabelDataset[k*100]['label']
+        # print img.dtype, label
+        # print np.max(img), np.min(img), np.mean(img)
+        # print img.shape
+        img = img_denormalize(img)
+        img = put_arrow(img, label)
+        cv2.imshow('img',img)
         cv2.waitKey(0)
 
-    dataloader = DataLoader(facingDroneLabelDataset, batch_size=40, shuffle=True, num_workers=1)
+    dataloader = DataLoader(facingDroneLabelDataset, batch_size=4, shuffle=True, num_workers=1)
 
     dataiter = iter(dataloader)
 
-    import ipdb;ipdb.set_trace()
+    # import ipdb;ipdb.set_trace()
 
     for sample in dataloader:
       print sample['label'], sample['img'].size()

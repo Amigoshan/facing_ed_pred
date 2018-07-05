@@ -6,8 +6,9 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from StateEncoderDecoder import StateEncoderDecoder
 from facingData import FacingDataset
+from facingDroneLabelData import FacingDroneLabelDataset
 from facingLabelData import FacingLabelDataset
-from utils import loadPretrain
+from utils import loadPretrain, img_denormalize
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,8 +17,8 @@ from os.path import join
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
 
-testnum = 680
-encodename = '1_2_encoder_decoder_facing_leaky_50000'
+testnum = 1000
+encodename = '32_1_encoder_decoder_facing_leaky_50000'
 encodedecoderSave = 'models_facing/'+encodename+'.pkl'
 
 imgoutdir = 'resimg_facing'
@@ -27,6 +28,14 @@ kernels = [4,4,4,4,4,4,3]
 paddings = [1,1,1,1,1,1,0]
 strides = [2,2,2,2,2,2,1]
 
+dir2val = { '1.00.0':0,
+            '0.7070.707': 1,
+             '0.01.0':2,
+            '-0.7070.707': 3,
+             '-1.00.0':4,
+            '-0.707-0.707': 5,
+             '0.0-1.0':6,
+            '0.707-0.707': 7}
 
 stateEncoderDecoder = StateEncoderDecoder(hiddens, kernels, strides, paddings, actfunc='leaky')
 # encode the input using pretrained model
@@ -36,15 +45,18 @@ stateEncoderDecoder.cuda()
 
 # testing
 # imgdataset = FacingDataset()
-imgdataset = FacingLabelDataset()
-dataloader = DataLoader(imgdataset, batch_size=1, shuffle=True, num_workers=1)
+# imgdataset = FacingLabelDataset()
+titsLabelDataset = FacingDroneLabelDataset(imgdir='/datadrive/TITS2016WangOnRoadVehicle/labeled', 
+                                            data_aug=True)
+# dataloader = DataLoader(imgdataset, batch_size=1, shuffle=True, num_workers=1)
+dataloader2 = DataLoader(titsLabelDataset, batch_size=1, shuffle=True, num_workers=2)
 
 criterion = nn.MSELoss()
 
 codelist = []
 labellist = []
 codemeanlist, codestdlist, codezerolist = [], [], []
-for ind,sample in enumerate(dataloader):  # loop over the dataset multiple times
+for ind,sample in enumerate(dataloader2):  # loop over the dataset multiple times
 
     # img = sample
     img = sample['img']
@@ -73,18 +85,20 @@ for ind,sample in enumerate(dataloader):  # loop over the dataset multiple times
     diffimg = (np.absolute(diff.numpy()[0,0,:,:]))
     # print np.max(diffimg),np.mean(diffimg)
 
+
     print 'loss:',loss.data[0]
     codelist.append(code.data.cpu().squeeze().numpy())
-    labellist.append(label[0])
+    # labellist.append(label[0])
+    labellist.append(dir2val[str(round(label[0][0],5))+str(round(label[0][1],5))])
 
-    # print 'output size',output.size()
-    # img_input = img.squeeze().numpy()
-    # img_input = imgdataset.img_denormalize(img_input)
-    # img_show = output.data.cpu().squeeze().numpy()
-    # img_show = imgdataset.img_denormalize(img_show)
-    # img_show = np.concatenate((img_input,img_show),axis=1)
-    # cv2.imshow('img',img_show)
-    # cv2.waitKey(0)
+    print 'output size',output.size()
+    img_input = img.squeeze().numpy()
+    img_input = img_denormalize(img_input)
+    img_show = output.data.cpu().squeeze().numpy()
+    img_show = img_denormalize(img_show)
+    img_show = np.concatenate((img_input,img_show),axis=1)
+    cv2.imshow('img',img_show)
+    cv2.waitKey(0)
 
 
     if ind==testnum-1:

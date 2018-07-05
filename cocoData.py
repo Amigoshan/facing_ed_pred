@@ -12,36 +12,20 @@ import matplotlib.pyplot as plt
 class XmlReader:
     def __init__(self):
         # self.dir2ind = {'n': 0,'ne': 1,'e': 2, 'se': 3,'s': 4,'sw': 5,'w': 6,'nw': 7}
-        self.dir2val = {'n':  [1., 0.],
-                        'ne': [0.707, 0.707],
-                        'e':  [0., 1.],
-                        'se': [-0.707, 0.707],
-                        's':  [-1., 0.],
-                        'sw': [-0.707, -0.707],
-                        'w':  [0., -1.],
-                        'nw': [0.707, -0.707]}
+        pass
 
     def readxml(self, xmldir):
         tree = xml.etree.ElementTree.parse(xmldir)
         root = tree.getroot()
         objects = root.findall("object")
         objects_list = []
-        dir_list = []
         for obj in objects:
-            pose = obj.findall('pose')[0].text
-            if 'drone_valid' in obj.findall('pose')[0].attrib:
-                drone_valid = obj.findall('pose')[0].attrib['drone_valid']
-                # print(drone_valid)
-            else:
-                drone_valid = 'false'
-            if drone_valid == 'true':
-                xmin = obj.findall('bndbox/xmin')[0].text
-                xmax = obj.findall('bndbox/xmax')[0].text
-                ymin = obj.findall('bndbox/ymin')[0].text
-                ymax = obj.findall('bndbox/ymax')[0].text
-                objects_list.append([float(xmin),float(ymin),float(xmax),float(ymax)])
-                dir_list.append(self.dir2val[pose])
-        return objects_list, dir_list
+            xmin = obj.findall('bndbox/xmin')[0].text
+            xmax = obj.findall('bndbox/xmax')[0].text
+            ymin = obj.findall('bndbox/ymin')[0].text
+            ymax = obj.findall('bndbox/ymax')[0].text
+            objects_list.append([float(xmin),float(ymin),float(xmax),float(ymax)])
+        return objects_list
 
 
 def fileInDir(dirname):
@@ -55,17 +39,16 @@ def fileInDir(dirname):
 
 
 
-class FacingLabelDataset(Dataset):
+class CocoDataset(Dataset):
 
-    def __init__(self, annodir = '/datadrive/datasets/facing/facing_anno', 
-                        imgdir='/datadrive/datasets/facing/facing_img_coco',
+    def __init__(self, annodir = '/datadrive/coco/car_heading_2018/annotations', 
+                        imgdir='/datadrive/coco/car_heading_2018/train',
                         imgsize = 192, 
                         data_aug=False,
                         mean=[0,0,0],std=[1,1,1]):
 
         self.imgsize = imgsize
         self.imgnamelist = []
-        self.labellist = []
         self.bboxlist = []
         self.aug = data_aug
         self.mean = mean
@@ -77,8 +60,8 @@ class FacingLabelDataset(Dataset):
         for xmlfile in fileInDir(annodir):
             xmlfilepath = join(annodir, xmlfile)
 
-            objlist, dirlist = xmlreader.readxml(xmlfilepath)
-            if len(dirlist)<=0:
+            objlist = xmlreader.readxml(xmlfilepath)
+            if len(objlist)<=0:
                 print 'no valid bbox in:', xmlfile
                 continue
 
@@ -92,8 +75,7 @@ class FacingLabelDataset(Dataset):
                 continue
 
             if isfile(imagefilepath): # the image also valid
-                for obj, direction in zip(objlist, dirlist):
-                    self.labellist.append(direction)
+                for obj in objlist:
                     self.bboxlist.append(np.array(obj).astype(np.int))
 
                     self.imgnamelist.append(imagefilepath)
@@ -108,7 +90,6 @@ class FacingLabelDataset(Dataset):
     def __getitem__(self, idx):
         img = cv2.imread(self.imgnamelist[idx]) # in bgr
         bbox = self.bboxlist[idx]
-        label = np.array(self.labellist[idx], dtype=np.float32)
 
         img = img[bbox[1]:bbox[3],bbox[0]:bbox[2],:] # crop the bbox
 
@@ -119,17 +100,18 @@ class FacingLabelDataset(Dataset):
 
         outimg = im_scale_norm_pad(img, outsize=self.imgsize, mean=self.mean, std=self.std, down_reso=True)
 
-        return {'img':outimg, 'label':label}
+        return {'img':outimg}
 
 if __name__=='__main__':
     # test 
     np.set_printoptions(precision=4)
-    facingLabelDataset = FacingLabelDataset(data_aug=True)
+    cocoDataset = CocoDataset(data_aug=True)
     for k in range(100):
-        img = facingLabelDataset[k]['img']
-        print img.dtype, facingLabelDataset[k]['label']
+        img = cocoDataset[k]['img']
+        print img.dtype#, CocoDataset[k]['label']
         print np.max(img), np.min(img), np.mean(img)
         print img.shape
         img = img_denormalize(img)
         cv2.imshow('img',img)
         cv2.waitKey(0)
+

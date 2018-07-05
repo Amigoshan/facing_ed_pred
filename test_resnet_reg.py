@@ -6,104 +6,96 @@ import numpy as np
 from os.path import join
 
 from utils import loadPretrain2, loadPretrain, seq_show_with_arrow
-from facingDroneLabelData import FacingDroneLabelDataset
-from facingDroneUnlabelData import FacingDroneUnlabelDataset
-from facingLabelData import FacingLabelDataset
-from ResnetRegNet import ResnetReg_norm
+# from facingDroneLabelData import FacingDroneLabelDataset
+# from facingDroneUnlabelData import FacingDroneUnlabelDataset
+# from facingLabelData import FacingLabelDataset
+from gascolaDataset import GascolaDataset
+from ResnetRegNet import ResnetReg
+from StateEncoderDecoder import EncoderReg
+from cocoData import CocoDataset
 
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
-preTrainModel = 'models_facing/15_1_resnet_reg_24000.pkl'
 batch = 8
 unlabel_batch = 32
-datasetdir = '/datasets'
-mean = [0.485, 0.456, 0.406]
-std = [0.229, 0.224, 0.225]
-
-encoderReg = ResnetReg_norm()
-# encode the input using pretrained model
-print 'load pretrained...'
-encoderReg=loadPretrain(encoderReg,preTrainModel)
-encoderReg.cuda()
+# datasetdir = '/datasets'
+model = 'resnet' # 'resnet'
 
 criterion = nn.MSELoss()
 
-imgdataset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/label'), 
-                                    data_aug=True,mean=mean,std=std)
-valset = FacingDroneLabelDataset(imgdir=join(datasetdir,'droneData/val'),mean=mean,std=std)
-cocodata = FacingLabelDataset(annodir = join(datasetdir,'facing/facing_anno'), 
-                                 imgdir=join(datasetdir,'facing/facing_img_coco'), 
-                                 data_aug=True,
-                                 mean=mean,std=std)
-# imgdataset = FacingLabelDataset()
-unlabelset = FacingDroneUnlabelDataset(imgdir=join(datasetdir,'dirimg'), 
-                                       batch = unlabel_batch, data_aug=True, extend=True,
-                                       mean=mean,std=std)
-
-valnum = 32
-dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=1)
-valloader = DataLoader(valset, batch_size=valnum, shuffle=True, num_workers=1)
-unlabelloder = DataLoader(unlabelset, batch_size=1, shuffle=True, num_workers=1)
-cocoloader = DataLoader(cocodata, batch_size=batch, shuffle=True, num_workers=1)
-
-def test_label(dataloader, encoderReg, criterion, display=True, compute_loss=True):
+def test_label(sample, encoderReg, criterion, display=True, compute_loss=True):
     # test on valset/trainset
     # return loss and accuracy
-    ind = 0
-    mean_loss = 0.0
-    for val_sample in dataloader:
-        ind += 1
-        inputImgs = val_sample['img']
-        labels = val_sample['label']
-        targetCls = Variable(labels,requires_grad=False).cuda()
+    inputImgs = sample['img']
+    inputState = Variable(inputImgs,requires_grad=False).cuda()
+    output, _ = encoderReg(inputState)
 
-        inputState = Variable(inputImgs,requires_grad=False).cuda()
-
-        output, _ = encoderReg(inputState)
+    if display:
         print 'network output:', output.data
+        seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), mean=mean,std=std)
 
-        if compute_loss:
-            loss = criterion(output, targetCls)
-            val_loss = loss.data[0]
-            mean_loss += val_loss
+    if compute_loss:
+        labels = sample['label']
+        targetCls = Variable(labels,requires_grad=False).cuda()
+        loss = criterion(output, targetCls)
+        val_loss = loss.data[0]
+        mean_loss += val_loss
+        print labels.numpy()
+        print 'loss ',loss.data[0]
 
-            print labels.numpy()
-            print 'loss ',loss.data[0]
+        return output, loss.data[0]
 
-        if display:
-            seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), mean=mean,std=std)
-
-        break
-
-    return output, mean_loss
+    return output
 
 
-def test_unlabel(dataloader, encoderReg, display=True):
+def test_unlabel(sample, encoderReg, display=True):
     # test on valset/trainset
     # return the output on one batch
-    ind = 0
-    mean_loss = 0.0
-    mean_acc = 0.0
-    # lossplot = []
-    for val_sample in dataloader:
-        ind += 1
-        inputImgs = val_sample.squeeze()
-
-        inputState = Variable(inputImgs,requires_grad=False).cuda()
-
-        output, _ = encoderReg(inputState)
-
-        break
+    inputImgs = sample.squeeze()
+    inputState = Variable(inputImgs,requires_grad=False).cuda()
+    output, _ = encoderReg(inputState)
 
     if display:
         seq_show_with_arrow(inputImgs.numpy(), output.data.cpu().numpy(), scale = 0.5, mean=mean,std=std)
     return output
 
 
+if model == 'resnet':
+    mean=[0.485, 0.456, 0.406]
+    std=[0.229, 0.224, 0.225]
 
-for k in range(100):  # loop over the dataset multiple times
+    encoderReg = ResnetReg()
+    encoderReg.cuda()
 
-    test_label(dataloader, encoderReg, criterion, display = True)
-    test_label(valloader, encoderReg, criterion, display = True)
-    test_label(cocoloader, encoderReg, criterion, display = True, compute_loss=False)
-    pred = test_unlabel(unlabelloder, encoderReg, display=True)
+elif model == 'ed':
+    mean=[0, 0, 0]
+    std=[1, 1, 1]
+    hiddens = [3,16,32,32,64,64,128,256] 
+    kernels = [4,4,4,4,4,4,3]
+    paddings = [1,1,1,1,1,1,0]
+    strides = [2,2,2,2,2,2,1]
+    encoderReg = EncoderReg(hiddens, kernels, strides, paddings, actfunc='leaky')
+    encoderReg.cuda()
+   
+else:
+    print 'unknown model:', model
+
+# imgdataset = GascolaDataset(data_aug=False,mean=mean,std=std)
+# dataloader = DataLoader(imgdataset, batch_size=batch, shuffle=True, num_workers=1)
+
+cocodataset = CocoDataset(data_aug=False,mean=mean,std=std)
+dataloader = DataLoader(cocodataset, batch_size=batch, shuffle=True, num_workers=1)
+
+for k in range(10000,10001,2000):
+    preTrainModel = 'models_facing/30_2_resnet_reg_car_'+str(k)+'.pkl'
+    loadPretrain(encoderReg, preTrainModel)
+
+    total_loss = 0
+    for sample in dataloader:
+        _ = test_label(sample, encoderReg, criterion, display = True, compute_loss=False)
+    print preTrainModel.split('/')[-1]
+    print '  total loss:', mean_loss
+
+    # test_label(valloader, encoderReg, criterion, display = True)
+    # test_label(cocoloader, encoderReg, criterion, display = True, compute_loss=False)
+    # pred = test_unlabel(unlabelloder, encoderReg, display=True)

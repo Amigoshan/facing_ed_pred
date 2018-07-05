@@ -14,10 +14,11 @@ from StateEncoderDecoder import EncoderReg # EncoderReg_norm as
 np.set_printoptions(threshold=np.nan, precision=2, suppress=True)
 
 # preTrainModel = 'models_facing/track_sup_seed_drone_both_ed_reg_200000.pkl'
-preTrainModel = '/datadrive/aayush/models_facing/track_sup_seed_drone_both_run3_ed_reg_200000.pkl'
+# preTrainModel = '/datadrive/aayush/models_facing/track_sup_seed_drone_both_run3_ed_reg_200000.pkl'
+preTrainModel = 'models_facing/41_1_ed_reg_40000.pkl'
 batch = 8
 unlabel_batch = 32
-datasetdir = '/datasets'
+datasetdir = '/datadrive/datasets'
 hiddens = [3,16,32,32,64,64,128,256] 
 kernels = [4,4,4,4,4,4,3]
 paddings = [1,1,1,1,1,1,0]
